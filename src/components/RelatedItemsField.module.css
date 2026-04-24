@@ -1,0 +1,118 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--base) * 0.5);
+  margin-bottom: calc(var(--base) * 0.5);
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--base) * 0.5);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--theme-elevation-800);
+  margin-bottom: calc(var(--base) * 0.25);
+}
+
+.scorerBadge {
+  font-weight: 500;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--theme-elevation-600);
+  background: var(--theme-elevation-100);
+  border: 1px solid var(--theme-elevation-150);
+  padding: 1px 6px;
+  border-radius: var(--style-radius-s);
+}
+
+.empty {
+  color: var(--theme-elevation-500);
+  font-size: 0.85rem;
+  font-style: italic;
+  padding: calc(var(--base) * 0.5) 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--base) * 0.25);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  background: var(--theme-elevation-50);
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: var(--style-radius-s);
+  padding: calc(var(--base) * 0.5) calc(var(--base) * 0.75);
+  transition: background 0.15s ease;
+}
+
+.item:hover {
+  background: var(--theme-elevation-100);
+}
+
+.link {
+  color: var(--theme-text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: block;
+}
+
+.link:hover {
+  color: var(--theme-success-500);
+  text-decoration: underline;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--base) * 0.5);
+  margin-top: calc(var(--base) * 0.15);
+  font-size: 0.75rem;
+  color: var(--theme-elevation-500);
+}
+
+.collection {
+  background: var(--theme-elevation-150);
+  color: var(--theme-elevation-700);
+  padding: 2px 6px;
+  border-radius: var(--style-radius-s);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.score {
+  font-variant-numeric: tabular-nums;
+}
+
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: calc(var(--base) * 0.25);
+}
+
+.keyword {
+  background: var(--theme-elevation-100);
+  color: var(--theme-elevation-600);
+  padding: 1px 6px;
+  border-radius: var(--style-radius-s);
+  font-size: 0.7rem;
+}
+
+.loading,
+.error {
+  color: var(--theme-elevation-500);
+  font-size: 0.85rem;
+  padding: calc(var(--base) * 0.5) 0;
+}
+
+.error {
+  color: var(--theme-error-500);
+}

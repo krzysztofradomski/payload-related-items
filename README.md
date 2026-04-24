@@ -1,218 +1,203 @@
-# Payload Plugin Template
+# payload-related-items
 
-A template repo to create a [Payload CMS](https://payloadcms.com) plugin.
+A [Payload CMS](https://payloadcms.com) plugin that surfaces **related
+content** using classical, transparent similarity algorithms — no external
+AI service required.
 
-Payload is built with a robust infrastructure intended to support Plugins with ease. This provides a simple, modular, and reusable way for developers to extend the core capabilities of Payload.
+Built for editorial sites, docs, knowledge bases, and any Payload project
+that wants **"Related posts"**, **"You might also like…"**, or **"More like
+this"** sections backed by predictable math instead of a black box.
 
-To build your own Payload plugin, all you need is:
+---
 
-- An understanding of the basic Payload concepts
-- And some JavaScript/Typescript experience
+## Features
 
-## Background
+- **Deterministic ranking** you can reason about and debug.
+- **Four built-in scorers**: Jaccard, Weighted Jaccard, Sørensen–Dice, BM25
+  (default).
+- **Multi-field weighting**, **recency decay**, and **flexible exclusions**.
+- **In-memory LRU cache** (TTL-aware) and **optional precomputed sidecar
+  collection** for large corpora.
+- **Admin sidebar widget** with a per-widget scorer override (compare
+  algorithms without touching collection config).
+- **Keyword cloud** rendered on the source-collection list view, lazy-loaded
+  and computed on demand.
+- **REST endpoint**, typed **`getRelated()`** server API, and a headless
+  **`useRelatedItems`** React hook.
+- Pairs with [`@payloadcms/plugin-search`](https://payloadcms.com/docs/plugins/search)
+  out of the box, or any custom data source via the `SourceAdapter`
+  interface.
 
-Here is a short recap on how to integrate plugins with Payload, to learn more visit the [plugin overview page](https://payloadcms.com/docs/plugins/overview).
+<!-- > Tiered roadmap: this repo ships the **free core**. A commercial add-on with
+> semantic embeddings, A/B testing, external vector providers, and an
+> analytics dashboard is planned separately. -->
 
-### How to install a plugin
+## Install
 
-To install any plugin, simply add it to your payload.config() in the Plugin array.
+```bash
+pnpm add payload-related-items
+# or
+npm install payload-related-items
+```
+
+Peer dependency: `payload` ≥ 3.x. `@payloadcms/ui`, `react`, `react-dom` are
+optional peer deps used only by the admin sidebar widget and the React hook.
+
+## Quick start
+
+The simplest setup pairs this plugin with `@payloadcms/plugin-search`, which
+handles keyword extraction and gives you one shared index to query.
 
 ```ts
-import myPlugin from 'my-plugin'
+// payload.config.ts
+import { buildConfig } from 'payload'
+import { searchPlugin } from '@payloadcms/plugin-search'
+import { extractKeywords, payloadRelatedItems } from 'payload-related-items'
 
-export const config = buildConfig({
+export default buildConfig({
+  collections: [
+    /* posts, articles, ... */
+  ],
   plugins: [
-    // You can pass options to the plugin
-    myPlugin({
-      enabled: true,
+    searchPlugin({
+      collections: ['posts', 'articles'],
+      searchOverrides: {
+        fields: ({ defaultFields }) => [
+          ...defaultFields,
+          { name: 'keywords', type: 'text', hasMany: true },
+        ],
+      },
+      beforeSync: ({ originalDoc, searchDoc }) => ({
+        ...searchDoc,
+        keywords: extractKeywords(
+          [originalDoc.title, originalDoc.excerpt, originalDoc.body].filter(Boolean).join(' '),
+        ),
+      }),
+    }),
+    payloadRelatedItems({
+      collections: {
+        posts: {
+          fields: [{ name: 'keywords', weight: 1 }],
+          recency: { field: 'publishedAt', halfLifeDays: 60 },
+        },
+        articles: {
+          fields: [{ name: 'keywords', weight: 1 }],
+        },
+      },
     }),
   ],
 })
 ```
 
-### Initialization
+That's it. Each configured collection now exposes:
 
-The initialization process goes in the following order:
+- A sidebar **Related Items** panel in the admin.
+- `GET /api/related/:collection/:id?limit=5` — JSON response.
+- `getRelated({ payload, collection, id })` in server code.
+- `useRelatedItems({ collection, id })` in client components (from
+  `payload-related-items/client`).
 
-1. Incoming config is validated
-2. **Plugins execute**
-3. Default options are integrated
-4. Sanitization cleans and validates data
-5. Final config gets initialized
+## Documentation
 
-## Building the Plugin
+| Topic                                      | What's in there                                                         |
+| ------------------------------------------ | ----------------------------------------------------------------------- |
+| [Configuration](./docs/configuration.md)   | Full options reference: source, collections, cache, recency, disabling. |
+| [Scorers](./docs/scorers.md)               | Algorithm comparison + the three layers where you can set the scorer.   |
+| [API](./docs/api.md)                       | `getRelated()`, REST endpoint, headless React hook, result shape.       |
+| [Precomputation](./docs/precomputation.md) | Sidecar collection, incremental sync, full rebuilds.                    |
+| [Word cloud](./docs/word-cloud.md)         | On-demand admin keyword cloud + REST endpoint.                          |
+| [Source adapter](./docs/source-adapter.md) | How keyword storage works + plugging in a non-search-plugin source.     |
+| [Development](./docs/development.md)       | Project layout, scripts, releasing, adding a scorer.                    |
 
-When you build a plugin, you are purely building a feature for your project and then abstracting it outside of the project.
+## FAQ
 
-### Template Files
+### Do I need `@payloadcms/plugin-search`?
 
-In the Payload [plugin template](https://github.com/payloadcms/payload/tree/3.x/templates/plugin), you will see a common file structure that is used across all plugins:
+No, but it's the path of least resistance. The plugin reads from any source
+via a `SourceAdapter`. The default adapter targets the search plugin's
+collection because (a) it already gives you a polymorphic relationship back
+to the originating doc, and (b) it's where most Payload projects already
+extract keywords. See [Source adapter](./docs/source-adapter.md) to roll
+your own.
 
-1. root folder
-2. /src folder
-3. /dev folder
+### Where do keywords actually get stored?
 
-#### Root
+Once, on the search-plugin collection — not duplicated on each content
+collection. Your `searchPlugin({ beforeSync })` decides what goes in. See
+[Source adapter](./docs/source-adapter.md#how-keyword-storage-works).
 
-In the root folder, you will see various files that relate to the configuration of the plugin. We set up our environment in a similar manner in Payload core and across other projects, so hopefully these will look familiar:
+### Which scorer should I use?
 
-- **README**.md\* - This contains instructions on how to use the template. When you are ready, update this to contain instructions on how to use your Plugin.
-- **package**.json\* - Contains necessary scripts and dependencies. Overwrite the metadata in this file to describe your Plugin.
-- .**eslint**.config.js - Eslint configuration for reporting on problematic patterns.
-- .**gitignore** - List specific untracked files to omit from Git.
-- .**prettierrc**.json - Configuration for Prettier code formatting.
-- **tsconfig**.json - Configures the compiler options for TypeScript
-- .**swcrc** - Configuration for SWC, a fast compiler that transpiles and bundles TypeScript.
-- **vitest**.config.js - Config file for Vitest, defining how tests are run and how modules are resolved
+`bm25` is a strong default. It down-weights generic words via IDF and
+length-normalizes, which matters once you have more than a few hundred
+documents. For very short keyword lists try `dice`; for sparse, tidy sets
+`jaccard` is fine. Full guidance in
+[Scorers](./docs/scorers.md#picking-a-scorer).
 
-**IMPORTANT\***: You will need to modify these files.
+### Can I use a different scorer for the admin widget vs. the public site?
 
-#### Dev
+Yes — that's a first-class concern. Set `adminField.scorer` to control the
+widget independently from the collection-level default that
+`getRelated()` and the public REST endpoint use. The widget renders a small
+badge with the active scorer so editors can see what they're looking at.
+See [Where to set the scorer](./docs/scorers.md#where-to-set-the-scorer).
 
-In the dev folder, you’ll find a basic payload project, created with `npx create-payload-app` and the blank template.
+### Is the cache safe across multiple processes?
 
-**IMPORTANT**: Make a copy of the `.env.example` file and rename it to `.env`. Update the `DATABASE_URL` to match the database you are using and your plugin name. Update `PAYLOAD_SECRET` to a unique string.
-**You will not be able to run `pnpm/yarn dev` until you have created this `.env` file.**
+The LRU cache is **per-process**. Source-collection writes invalidate the
+local cache instantly via `afterChange` / `afterDelete` hooks. For
+multi-instance deployments where strong cross-process freshness matters,
+lower `cache.ttlSeconds` or disable the cache. For larger corpora, prefer
+the [precomputed sidecar](./docs/precomputation.md) instead.
 
-`myPlugin` has already been added to the `payload.config()` file in this project.
+### How fresh is the precomputed sidecar?
 
-```ts
-plugins: [
-  myPlugin({
-    collections: {
-      posts: true,
-    },
-  }),
-]
-```
+With `precompute.incremental: true` (default when precompute is enabled),
+the sidecar is updated on every source-collection write. Run
+`rebuildRelatedIndex({ payload })` periodically if you want a belt-and-suspenders
+guarantee.
 
-Later when you rename the plugin or add additional options, **make sure to update it here**.
+### Does this work with Postgres / SQLite / Mongo?
 
-You may wish to add collections or expand the test project depending on the purpose of your plugin. Just make sure to keep this dev environment as simplified as possible - users should be able to install your plugin without additional configuration required.
+Yes — the plugin only uses Payload's collection APIs (`find`, `findByID`,
+`update`, `create`, `delete`). Whatever Payload supports, this supports.
 
-When you’re ready to start development, initiate the project with `pnpm/npm/yarn dev` and pull up [http://localhost:3000](http://localhost:3000) in your browser.
+### Does it support draft / locale-aware content?
 
-#### Src
+Reads honour the requesting user's session via `PayloadRequest`, so
+collection-level access control applies. For drafts/locales specifically,
+pass an explicit `filter` in the collection config (e.g. `{ status: { equals:
+'published' } }`), or call `getRelated({ filter, req })` per call.
 
-Now that we have our environment setup and we have a dev project ready to - it’s time to build the plugin!
+### How do I render the title / slug / cover image of related items on the frontend?
 
-**index.ts**
+Pass `populate: true` (or `{ depth: 1 }` for relationship resolution) to
+`getRelated()`, the REST endpoint (`?populate=true`), or the
+`useRelatedItems` hook. Each result then carries the full originating
+document as `doc`, batched server-side to avoid N+1 fetches. See
+[API → Populating original docs](./docs/api.md#populating-original-docs).
 
-The essence of a Payload plugin is simply to extend the payload config - and that is exactly what we are doing in this file.
+### What is the keyword cloud on the source-collection list page?
 
-```ts
-export const myPlugin =
-  (pluginOptions: MyPluginConfig) =>
-  (config: Config): Config => {
-    // do cool stuff with the config here
+An admin-only helper that aggregates keyword frequencies across your source
+collection rows on demand and renders them sized by frequency. The renderer
+is code-split (`React.lazy`), so nothing is bundled or computed until an
+editor clicks **Compute word cloud**. See [Word cloud](./docs/word-cloud.md)
+for scale notes, configuration, and the REST endpoint that backs it.
 
-    return config
-  }
-```
+### Can I disable the admin widget without removing the plugin?
 
-First, we receive the existing payload config along with any plugin options.
+Yes — `adminField: false` (or `adminField: { enabled: false }`) keeps the
+REST endpoint, hooks, and `getRelated()` working without injecting any
+field into the admin.
 
-From here, you can extend the config as you wish.
+### Does this need a separate background worker?
 
-Finally, you return the config and that is it!
+No. The default path is in-memory + cache. Precomputation runs inline in the
+source collection's hooks (incremental) or as an explicit
+`rebuildRelatedIndex()` call you can schedule any way you like (cron, queue
+job, `onInit`, etc.). No new runtime to operate.
 
-##### Spread Syntax
+## License
 
-Spread syntax (or the spread operator) is a feature in JavaScript that uses the dot notation **(...)** to spread elements from arrays, strings, or objects into various contexts.
-
-We are going to use spread syntax to allow us to add data to existing arrays without losing the existing data. It is crucial to spread the existing data correctly – else this can cause adverse behavior and conflicts with Payload config and other plugins.
-
-Let’s say you want to build a plugin that adds a new collection:
-
-```ts
-config.collections = [
-  ...(config.collections || []),
-  // Add additional collections here
-]
-```
-
-First we spread the `config.collections` to ensure that we don’t lose the existing collections, then you can add any additional collections just as you would in a regular payload config.
-
-This same logic is applied to other properties like admin, hooks, globals:
-
-```ts
-config.globals = [
-  ...(config.globals || []),
-  // Add additional globals here
-]
-
-config.hooks = {
-  ...(incomingConfig.hooks || {}),
-  // Add additional hooks here
-}
-```
-
-Some properties will be slightly different to extend, for instance the onInit property:
-
-```ts
-import { onInitExtension } from './onInitExtension' // example file
-
-config.onInit = async (payload) => {
-  if (incomingConfig.onInit) await incomingConfig.onInit(payload)
-  // Add additional onInit code by defining an onInitExtension function
-  onInitExtension(pluginOptions, payload)
-}
-```
-
-If you wish to add to the onInit, you must include the **async/await**. We don’t use spread syntax in this case, instead you must await the existing `onInit` before running additional functionality.
-
-In the template, we have stubbed out some addition `onInit` actions that seeds in a document to the `plugin-collection`, you can use this as a base point to add more actions - and if not needed, feel free to delete it.
-
-##### Types.ts
-
-If your plugin has options, you should define and provide types for these options.
-
-```ts
-export type MyPluginConfig = {
-  /**
-   * List of collections to add a custom field
-   */
-  collections?: Partial<Record<CollectionSlug, true>>
-  /**
-   * Disable the plugin
-   */
-  disabled?: boolean
-}
-```
-
-If possible, include JSDoc comments to describe the options and their types. This allows a developer to see details about the options in their editor.
-
-##### Testing
-
-Having a test suite for your plugin is essential to ensure quality and stability. **Vitest** is a fast, modern testing framework that works seamlessly with Vite and supports TypeScript out of the box.
-
-Vitest organizes tests into test suites and cases, similar to other testing frameworks. We recommend creating individual tests based on the expected behavior of your plugin from start to finish.
-
-Writing tests with Vitest is very straightforward, and you can learn more about how it works in the [Vitest documentation.](https://vitest.dev/)
-
-For this template, we stubbed out `int.spec.ts` in the `dev` folder where you can write your tests.
-
-```ts
-describe('Plugin tests', () => {
-  // Create tests to ensure expected behavior from the plugin
-  it('some condition that must be met', () => {
-   // Write your test logic here
-   expect(...)
-  })
-})
-```
-
-## Best practices
-
-With this tutorial and the plugin template, you should have everything you need to start building your own plugin.
-In addition to the setup, here are other best practices aim we follow:
-
-- **Providing an enable / disable option:** For a better user experience, provide a way to disable the plugin without uninstalling it. This is especially important if your plugin adds additional webpack aliases, this will allow you to still let the webpack run to prevent errors.
-- **Include tests in your GitHub CI workflow**: If you’ve configured tests for your package, integrate them into your workflow to run the tests each time you commit to the plugin repository. Learn more about [how to configure tests into your GitHub CI workflow.](https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs)
-- **Publish your finished plugin to NPM**: The best way to share and allow others to use your plugin once it is complete is to publish an NPM package. This process is straightforward and well documented, find out more [creating and publishing a NPM package here.](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
-- **Add payload-plugin topic tag**: Apply the tag **payload-plugin **to your GitHub repository. This will boost the visibility of your plugin and ensure it gets listed with [existing payload plugins](https://github.com/topics/payload-plugin).
-- **Use [Semantic Versioning](https://semver.org/) (SemVar)** - With the SemVar system you release version numbers that reflect the nature of changes (major, minor, patch). Ensure all major versions reference their Payload compatibility.
-
-# Questions
-
-Please contact [Payload](mailto:dev@payloadcms.com) with any questions about using this plugin template.
+MIT. Copyright © Krzysztof Radomski

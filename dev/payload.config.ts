@@ -1,9 +1,10 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
+import { searchPlugin } from '@payloadcms/plugin-search'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import path from 'path'
 import { buildConfig } from 'payload'
-import { payloadRelatedItems } from 'payload-related-items'
+import { extractKeywords, payloadRelatedItems } from 'payload-related-items'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
@@ -18,7 +19,9 @@ if (!process.env.ROOT_DIR) {
 }
 
 const buildConfigWithMemoryDB = async () => {
-  if (process.env.NODE_ENV === 'test') {
+  // Use an in-memory Mongo replica set whenever no DATABASE_URL is provided
+  // (tests, or just `pnpm dev` without a local Mongo running).
+  if (!process.env.DATABASE_URL) {
     const memoryDB = await MongoMemoryReplSet.create({
       replSet: {
         count: 3,
@@ -38,7 +41,20 @@ const buildConfigWithMemoryDB = async () => {
     collections: [
       {
         slug: 'posts',
-        fields: [],
+        admin: { useAsTitle: 'title' },
+        fields: [
+          { name: 'title', type: 'text', required: true },
+          { name: 'body', type: 'textarea' },
+          { name: 'category', type: 'text' },
+        ],
+      },
+      {
+        slug: 'articles',
+        admin: { useAsTitle: 'title' },
+        fields: [
+          { name: 'title', type: 'text', required: true },
+          { name: 'summary', type: 'textarea' },
+        ],
       },
       {
         slug: 'media',
@@ -58,9 +74,38 @@ const buildConfigWithMemoryDB = async () => {
       await seed(payload)
     },
     plugins: [
+      searchPlugin({
+        collections: ['posts', 'articles'],
+        searchOverrides: {
+          fields: ({ defaultFields }) => [
+            ...defaultFields,
+            { name: 'keywords', type: 'json', admin: { readOnly: true } },
+            { name: 'body', type: 'textarea' },
+            { name: 'category', type: 'text' },
+          ],
+        },
+        beforeSync: ({ originalDoc, searchDoc }) => {
+          const text = [
+            searchDoc.title,
+            originalDoc?.body,
+            originalDoc?.summary,
+            originalDoc?.category,
+          ]
+            .filter((v): v is string => typeof v === 'string' && v.length > 0)
+            .join(' ')
+
+          return {
+            ...searchDoc,
+            body: originalDoc?.body ?? null,
+            category: originalDoc?.category ?? null,
+            keywords: extractKeywords(text),
+          }
+        },
+      }),
       payloadRelatedItems({
         collections: {
           posts: true,
+          articles: true,
         },
       }),
     ],
