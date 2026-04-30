@@ -398,7 +398,11 @@ export interface FindSourceArgs {
   req?: PayloadRequest
 }
 
-export interface SourceAdapter {
+export type SourceListAdapter = (args: FetchSourceArgs) => Promise<SourceRow[]>
+
+export interface SourceAdapterObject {
   findOne: (args: FindSourceArgs) => Promise<null | SourceRow>
   list: (args: FetchSourceArgs) => Promise<SourceRow[]>
 }
+
+export type SourceAdapter = SourceAdapterObject | SourceListAdapter

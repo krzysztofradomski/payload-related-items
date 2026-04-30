@@ -4,7 +4,7 @@ import type {
   RelatedItem,
   SanitizedConfig,
   ScorerName,
-  SourceAdapter,
+  SourceAdapterObject,
   SourceRow,
 } from '../types.js'
 
@@ -25,7 +25,7 @@ export interface ResolveRelatedArgs {
   req?: PayloadRequest
   rows?: ReadonlyArray<SourceRow>
   scorer?: ScorerName
-  source: SourceAdapter
+  source: SourceAdapterObject
 }
 
 /**

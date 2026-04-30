@@ -29,6 +29,8 @@ export type {
   ScorerFn,
   ScorerName,
   SourceAdapter,
+  SourceAdapterObject,
+  SourceListAdapter,
   SourceRow,
 } from './types.js'
 export { aggregateWordCloud } from './wordCloud/aggregate.js'

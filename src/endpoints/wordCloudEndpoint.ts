@@ -2,8 +2,13 @@ import type { Endpoint, PayloadHandler } from 'payload'
 
 import type { SanitizedConfig } from '../types.js'
 
+import { getRuntime } from '../runtime.js'
 import { DEFAULT_STOP_WORDS } from '../source/keywords.js'
-import { aggregateWordCloud, type WordCloudResult } from '../wordCloud/aggregate.js'
+import {
+  aggregateWordCloud,
+  aggregateWordCloudRows,
+  type WordCloudResult,
+} from '../wordCloud/aggregate.js'
 
 interface CacheEntry {
   expiresAt: number
@@ -69,16 +74,30 @@ export function buildWordCloudEndpoint(config: SanitizedConfig): Endpoint | null
     }
 
     try {
-      const result = await aggregateWordCloud({
-        config,
-        filterCollection,
-        limit: reqLimit,
-        minLength: reqMinLength,
-        payload: req.payload,
-        req,
-        sampleSize: reqSampleSize,
-        stopWords: useStopWords ? DEFAULT_STOP_WORDS : undefined,
-      })
+      const stopWords = useStopWords ? DEFAULT_STOP_WORDS : undefined
+      const result = config.source.adapter
+        ? aggregateWordCloudRows({
+            field: config.source.defaultKeywordsField,
+            filterCollection,
+            limit: reqLimit,
+            minLength: reqMinLength,
+            rows: await getRuntime(req.payload).source.list({
+              payload: req.payload,
+              req,
+            }),
+            sampleSize: reqSampleSize,
+            stopWords,
+          })
+        : await aggregateWordCloud({
+            config,
+            filterCollection,
+            limit: reqLimit,
+            minLength: reqMinLength,
+            payload: req.payload,
+            req,
+            sampleSize: reqSampleSize,
+            stopWords,
+          })
 
       if (ttlSeconds > 0) {
         CACHE.set(cacheKey, { expiresAt: Date.now() + ttlSeconds * 1000, result })
@@ -100,7 +119,7 @@ export function clearWordCloudCache(): void {
 }
 
 function parseIntOr(raw: null | string): number | undefined {
-  if (!raw) return undefined
+  if (!raw) {return undefined}
   const n = parseInt(raw, 10)
   return Number.isFinite(n) && n > 0 ? n : undefined
 }

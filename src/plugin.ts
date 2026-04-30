@@ -10,6 +10,7 @@ import { buildAdminField } from './fields/relatedItemsField.js'
 import { attachSourceHooks } from './hooks/sourceHooks.js'
 import { registerRuntime } from './runtime.js'
 import { buildSidecarCollection } from './sidecar/collection.js'
+import { normalizeSourceAdapter } from './source/adapter.js'
 import { createSearchPluginSource } from './source/searchPluginSource.js'
 
 /**
@@ -159,7 +160,10 @@ export const payloadRelatedItems =
       registerRuntime(payload, {
         cache,
         config: sanitized,
-        source: sanitized.source.adapter ?? createSearchPluginSource({ config: sanitized }),
+        source: normalizeSourceAdapter({
+          adapter: sanitized.source.adapter ?? createSearchPluginSource({ config: sanitized }),
+          config: sanitized,
+        }),
       })
 
       payload.logger.info?.(

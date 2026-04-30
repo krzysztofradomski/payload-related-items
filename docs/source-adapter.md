@@ -32,7 +32,7 @@ const mySource: SourceAdapter = {
   async findOne({ payload, collection, id, req }) {
     // return SourceRow | null
   },
-  async list({ payload, req }) {
+  async list({ filter, payload, req }) {
     // return SourceRow[]
   },
 }
@@ -59,3 +59,9 @@ interface SourceRow {
 This lets you back the plugin with anything that emits keyword arrays per
 document — Postgres `tsvector`, an external tagging service, your own batch
 job — without reimplementing the scoring/caching pipeline.
+
+`list` receives the same merged `filter` that would be applied to the source
+collection when using the default search-plugin adapter. It combines the
+configured `collections[slug].filter` with any per-call `getRelated({ filter })`
+override. Custom adapters should honor it when their backend can apply Payload
+`where` clauses; otherwise, document the unsupported filter behavior for callers.

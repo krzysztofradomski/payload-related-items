@@ -1,6 +1,6 @@
 import type { Payload, PayloadRequest } from 'payload'
 
-import type { SanitizedConfig, SourceAdapter, SourceRow } from '../types.js'
+import type { SanitizedConfig, SourceAdapterObject, SourceRow } from '../types.js'
 
 import { parseKeywords } from './parseEmbedding.js'
 import { readSourceRelationship } from './relationship.js'
@@ -32,7 +32,7 @@ export interface SearchPluginSourceOptions {
  * Paginates through the entire collection — OK up to ~50–100k rows; past that
  * flip on {@link SanitizedConfig.precompute} and serve from the sidecar.
  */
-export function createSearchPluginSource(options: SearchPluginSourceOptions): SourceAdapter {
+export function createSearchPluginSource(options: SearchPluginSourceOptions): SourceAdapterObject {
   const { config } = options
   const pageSize = options.pageSize ?? 1000
 

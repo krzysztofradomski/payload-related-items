@@ -1,7 +1,7 @@
 import type { Payload } from 'payload'
 
 import type { LruTtlCache } from './cache/index.js'
-import type { RelatedItem, SanitizedConfig, SourceAdapter } from './types.js'
+import type { RelatedItem, SanitizedConfig, SourceAdapterObject } from './types.js'
 
 /**
  * Per-payload-instance runtime state. Kept out of the plugin config so hot
@@ -11,7 +11,7 @@ import type { RelatedItem, SanitizedConfig, SourceAdapter } from './types.js'
 export interface Runtime {
   cache: LruTtlCache<RelatedItem[]> | null
   config: SanitizedConfig
-  source: SourceAdapter
+  source: SourceAdapterObject
 }
 
 // Using `Symbol.for` guarantees the same symbol across duplicated module

@@ -26,7 +26,11 @@ describe('getRelated source adapter seam', () => {
   test('uses the registered SourceAdapter for live candidate rows', async () => {
     const config = sanitizeConfig({
       cache: false,
-      collections: { articles: true },
+      collections: {
+        articles: {
+          filter: { _status: { equals: 'published' } },
+        },
+      },
     })
 
     const queryRow: SourceRow = {
@@ -57,6 +61,7 @@ describe('getRelated source adapter seam', () => {
     const results = await getRelated({
       id: 'source-1',
       collection: 'articles',
+      filter: { locale: { equals: 'en' } },
       payload,
       skipCache: true,
       skipPrecomputed: true,
@@ -68,7 +73,16 @@ describe('getRelated source adapter seam', () => {
       payload,
       req: undefined,
     })
-    expect(fakeSource.list).toHaveBeenCalledTimes(1)
+    expect(fakeSource.list).toHaveBeenCalledWith({
+      filter: {
+        and: [
+          { _status: { equals: 'published' } },
+          { locale: { equals: 'en' } },
+        ],
+      },
+      payload,
+      req: undefined,
+    })
     expect(results).toHaveLength(1)
     expect(results[0]).toMatchObject({
       id: 'candidate-1',

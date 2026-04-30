@@ -1,6 +1,6 @@
 import type { Payload, PayloadRequest, Where } from 'payload'
 
-import type { SanitizedConfig } from '../types.js'
+import type { SanitizedConfig, SourceRow } from '../types.js'
 
 import { parseKeywords } from '../source/parseEmbedding.js'
 
@@ -21,8 +21,12 @@ function buildNonEmptyKeywordFieldWhere(field: string): Where {
 }
 
 function mergeWhere(a: undefined | Where, b: undefined | Where): undefined | Where {
-  if (a == null) {return b}
-  if (b == null) {return a}
+  if (a == null) {
+    return b
+  }
+  if (b == null) {
+    return a
+  }
   return { and: [a, b] }
 }
 
@@ -63,6 +67,22 @@ export interface AggregateOptions {
   payload: Payload
   req?: PayloadRequest
   /** Maximum source rows to scan per call. Default: 2000. Protects against giant-corpus scans. */
+  sampleSize?: number
+  /** Optional stop list. Terms in this set are dropped. */
+  stopWords?: Iterable<string>
+}
+
+export interface AggregateRowsOptions {
+  /** Which SourceRow keyword field should be aggregated. */
+  field: string
+  /** Optional originating-collection filter. */
+  filterCollection?: null | string
+  /** Maximum number of terms in the response. Default: 100. */
+  limit?: number
+  /** Minimum term character length. Default: 3. */
+  minLength?: number
+  rows: ReadonlyArray<SourceRow>
+  /** Maximum rows to scan. Default: 2000. */
   sampleSize?: number
   /** Optional stop list. Terms in this set are dropped. */
   stopWords?: Iterable<string>
@@ -127,19 +147,27 @@ export async function aggregateWordCloud(opts: AggregateOptions): Promise<WordCl
       where,
     })
 
-    if (result.docs.length === 0) {break}
+    if (result.docs.length === 0) {
+      break
+    }
 
     for (const doc of result.docs) {
       totalDocs++
       const raw = (doc as Record<string, unknown>)[field]
       const keywords = parseKeywords(raw)
-      if (keywords.length === 0) {continue}
+      if (keywords.length === 0) {
+        continue
+      }
 
       const seenInDoc = new Set<string>()
       for (const kw of keywords) {
         const term = kw.toLowerCase().trim()
-        if (term.length < minLength) {continue}
-        if (stop && stop.has(term)) {continue}
+        if (term.length < minLength) {
+          continue
+        }
+        if (stop && stop.has(term)) {
+          continue
+        }
         frequency.set(term, (frequency.get(term) ?? 0) + 1)
         if (!seenInDoc.has(term)) {
           seenInDoc.add(term)
@@ -148,8 +176,75 @@ export async function aggregateWordCloud(opts: AggregateOptions): Promise<WordCl
       }
     }
 
-    if (!result.hasNextPage) {break}
+    if (!result.hasNextPage) {
+      break
+    }
     page++
+  }
+
+  const terms: WordCloudTerm[] = Array.from(frequency.entries())
+    .map(([term, freq]) => ({
+      df: docFrequency.get(term) ?? freq,
+      frequency: freq,
+      term,
+    }))
+    .sort((a, b) => b.frequency - a.frequency || a.term.localeCompare(b.term))
+    .slice(0, limit)
+
+  return {
+    elapsedMs: Date.now() - start,
+    field,
+    filterCollection,
+    terms,
+    totalDocs,
+  }
+}
+
+export function aggregateWordCloudRows(opts: AggregateRowsOptions): WordCloudResult {
+  const start = Date.now()
+  const {
+    field,
+    filterCollection = null,
+    limit = 100,
+    minLength = 3,
+    rows,
+    sampleSize = 2000,
+    stopWords,
+  } = opts
+  const stop = stopWords ? new Set(stopWords) : null
+  const frequency = new Map<string, number>()
+  const docFrequency = new Map<string, number>()
+
+  let totalDocs = 0
+  for (const row of rows) {
+    if (totalDocs >= sampleSize) {
+      break
+    }
+    if (filterCollection && row.collection !== filterCollection) {
+      continue
+    }
+
+    const keywords = row.keywordsByField[field] ?? []
+    if (keywords.length === 0) {
+      continue
+    }
+    totalDocs++
+
+    const seenInDoc = new Set<string>()
+    for (const kw of keywords) {
+      const term = kw.toLowerCase().trim()
+      if (term.length < minLength) {
+        continue
+      }
+      if (stop && stop.has(term)) {
+        continue
+      }
+      frequency.set(term, (frequency.get(term) ?? 0) + 1)
+      if (!seenInDoc.has(term)) {
+        seenInDoc.add(term)
+        docFrequency.set(term, (docFrequency.get(term) ?? 0) + 1)
+      }
+    }
   }
 
   const terms: WordCloudTerm[] = Array.from(frequency.entries())
