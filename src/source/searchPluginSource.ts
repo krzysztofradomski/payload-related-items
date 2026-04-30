@@ -3,11 +3,7 @@ import type { Payload, PayloadRequest } from 'payload'
 import type { SanitizedConfig, SourceAdapter, SourceRow } from '../types.js'
 
 import { parseKeywords } from './parseEmbedding.js'
-
-interface RelationshipValue {
-  relationTo?: string
-  value?: unknown
-}
+import { readSourceRelationship } from './relationship.js'
 
 interface SearchRow {
   [key: string]: unknown
@@ -118,21 +114,11 @@ export async function findSourceRowForDoc(args: {
 }
 
 function toSourceRow(doc: SearchRow, config: SanitizedConfig): null | SourceRow {
-  const rel = doc[config.source.relationshipField] as RelationshipValue | undefined
-  const relationTo = rel?.relationTo ?? ''
-  const value = rel?.value
-  if (!relationTo || value == null) {return null}
-
-  const docId =
-    typeof value === 'object' && value !== null && 'id' in value
-      ? String((value as { id: unknown }).id)
-      : typeof value === 'string' || typeof value === 'number'
-        ? String(value)
-        : ''
-  if (!docId) {return null}
+  const relationship = readSourceRelationship(doc, config.source.relationshipField)
+  if (!relationship) {return null}
 
   const keywordsByField: Record<string, string[]> = {}
-  const collectionConfig = config.collections[relationTo]
+  const collectionConfig = config.collections[relationship.collection]
   if (collectionConfig) {
     for (const field of collectionConfig.fields) {
       keywordsByField[field.name] = parseKeywords(doc[field.name])
@@ -151,8 +137,8 @@ function toSourceRow(doc: SearchRow, config: SanitizedConfig): null | SourceRow 
     : null
 
   return {
-    collection: relationTo,
-    docId,
+    collection: relationship.collection,
+    docId: relationship.docId,
     keywordsByField,
     raw: doc,
     recencyDate,

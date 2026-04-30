@@ -4,6 +4,7 @@ import type { SanitizedConfig } from '../types.js'
 
 import { getRuntime } from '../runtime.js'
 import { deletePrecomputedFor, precomputeFor } from '../sidecar/writePrecomputed.js'
+import { readSourceRelationship } from '../source/relationship.js'
 
 /**
  * Attaches afterChange + afterDelete hooks to the source (search) collection so that:
@@ -30,25 +31,13 @@ export function attachSourceHooks(collection: CollectionConfig, config: Sanitize
           runtime.cache?.clear()
           if (!config.precompute.enabled || !config.precompute.incremental) {return}
 
-          const rel = doc?.[config.source.relationshipField] as
-            | { relationTo?: string; value?: unknown }
-            | undefined
-          const targetCollection = rel?.relationTo
-          const targetId = rel?.value
-          if (!targetCollection || targetId == null) {return}
-          if (!(targetCollection in config.collections)) {return}
-
-          const docId =
-            typeof targetId === 'object' && targetId !== null && 'id' in targetId
-              ? String((targetId as { id: unknown }).id)
-              : typeof targetId === 'string' || typeof targetId === 'number'
-                ? String(targetId)
-                : ''
-          if (!docId) {return}
+          const relationship = readSourceRelationship(doc, config.source.relationshipField)
+          if (!relationship) {return}
+          if (!(relationship.collection in config.collections)) {return}
 
           await precomputeFor({
-            id: docId,
-            collection: targetCollection,
+            id: relationship.docId,
+            collection: relationship.collection,
             config,
             payload: req.payload,
             req,
@@ -68,25 +57,13 @@ export function attachSourceHooks(collection: CollectionConfig, config: Sanitize
           runtime.cache?.clear()
           if (!config.precompute.enabled) {return}
 
-          const rel = doc?.[config.source.relationshipField] as
-            | { relationTo?: string; value?: unknown }
-            | undefined
-          const targetCollection = rel?.relationTo
-          const targetId = rel?.value
-          if (!targetCollection || targetId == null) {return}
-          if (!(targetCollection in config.collections)) {return}
-
-          const docId =
-            typeof targetId === 'object' && targetId !== null && 'id' in targetId
-              ? String((targetId as { id: unknown }).id)
-              : typeof targetId === 'string' || typeof targetId === 'number'
-                ? String(targetId)
-                : ''
-          if (!docId) {return}
+          const relationship = readSourceRelationship(doc, config.source.relationshipField)
+          if (!relationship) {return}
+          if (!(relationship.collection in config.collections)) {return}
 
           await deletePrecomputedFor({
-            id: docId,
-            collection: targetCollection,
+            id: relationship.docId,
+            collection: relationship.collection,
             config,
             payload: req.payload,
             req,

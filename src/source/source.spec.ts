@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import { extractKeywords } from './keywords.js'
 import { parseKeywords } from './parseEmbedding.js'
+import { readSourceRelationship } from './relationship.js'
 
 describe('parseKeywords', () => {
   test('returns [] for null/undefined', () => {
@@ -68,5 +69,30 @@ describe('extractKeywords', () => {
     expect(extractKeywords(null)).toEqual([])
     expect(extractKeywords(undefined)).toEqual([])
     expect(extractKeywords(42)).toEqual([])
+  })
+})
+
+describe('readSourceRelationship', () => {
+  test('reads primitive relationship ids', () => {
+    expect(
+      readSourceRelationship(
+        { doc: { relationTo: 'articles', value: 123 } },
+        'doc',
+      ),
+    ).toEqual({ collection: 'articles', docId: '123' })
+  })
+
+  test('reads populated relationship ids', () => {
+    expect(
+      readSourceRelationship(
+        { doc: { relationTo: 'posts', value: { id: 'abc' } } },
+        'doc',
+      ),
+    ).toEqual({ collection: 'posts', docId: 'abc' })
+  })
+
+  test('returns null for missing or unsupported relationship values', () => {
+    expect(readSourceRelationship({}, 'doc')).toBeNull()
+    expect(readSourceRelationship({ doc: { relationTo: 'posts', value: true } }, 'doc')).toBeNull()
   })
 })

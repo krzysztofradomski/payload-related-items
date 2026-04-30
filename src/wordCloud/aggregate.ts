@@ -1,4 +1,4 @@
-import type { CollectionSlug, Payload, PayloadRequest, Where } from 'payload'
+import type { Payload, PayloadRequest, Where } from 'payload'
 
 import type { SanitizedConfig } from '../types.js'
 
@@ -20,9 +20,9 @@ function buildNonEmptyKeywordFieldWhere(field: string): Where {
   }
 }
 
-function mergeWhere(a: Where | undefined, b: Where | undefined): Where | undefined {
-  if (a == null) return b
-  if (b == null) return a
+function mergeWhere(a: undefined | Where, b: undefined | Where): undefined | Where {
+  if (a == null) {return b}
+  if (b == null) {return a}
   return { and: [a, b] }
 }
 
@@ -48,8 +48,12 @@ export interface WordCloudResult {
   totalDocs: number
 }
 
+export interface WordCloudAggregateConfig {
+  source: SanitizedConfig['source']
+}
+
 export interface AggregateOptions {
-  config: SanitizedConfig
+  config: WordCloudAggregateConfig
   /** Optional originating-collection filter (e.g. `'posts'`). Filters on `<relationshipField>.relationTo`. */
   filterCollection?: null | string
   /** Maximum number of terms in the response. Default: 100. */
@@ -99,7 +103,7 @@ export async function aggregateWordCloud(opts: AggregateOptions): Promise<WordCl
   let totalDocs = 0
   const pageSize = 200
 
-  const baseWhere: Where | undefined = filterCollection
+  const baseWhere: undefined | Where = filterCollection
     ? { [`${config.source.relationshipField}.relationTo`]: { equals: filterCollection } }
     : undefined
 
@@ -110,7 +114,7 @@ export async function aggregateWordCloud(opts: AggregateOptions): Promise<WordCl
     const batch = Math.min(pageSize, remaining)
 
     const result = await payload.find({
-      collection: config.source.collection as CollectionSlug,
+      collection: config.source.collection,
       depth: 0,
       limit: batch,
       overrideAccess: false,
@@ -123,19 +127,19 @@ export async function aggregateWordCloud(opts: AggregateOptions): Promise<WordCl
       where,
     })
 
-    if (result.docs.length === 0) break
+    if (result.docs.length === 0) {break}
 
     for (const doc of result.docs) {
       totalDocs++
       const raw = (doc as Record<string, unknown>)[field]
       const keywords = parseKeywords(raw)
-      if (keywords.length === 0) continue
+      if (keywords.length === 0) {continue}
 
       const seenInDoc = new Set<string>()
       for (const kw of keywords) {
         const term = kw.toLowerCase().trim()
-        if (term.length < minLength) continue
-        if (stop && stop.has(term)) continue
+        if (term.length < minLength) {continue}
+        if (stop && stop.has(term)) {continue}
         frequency.set(term, (frequency.get(term) ?? 0) + 1)
         if (!seenInDoc.has(term)) {
           seenInDoc.add(term)
@@ -144,7 +148,7 @@ export async function aggregateWordCloud(opts: AggregateOptions): Promise<WordCl
       }
     }
 
-    if (!result.hasNextPage) break
+    if (!result.hasNextPage) {break}
     page++
   }
 

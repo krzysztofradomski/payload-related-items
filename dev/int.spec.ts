@@ -7,6 +7,14 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 
 let payload: Payload
 
+const wordCloudAggregateConfig = {
+  source: {
+    collection: 'search',
+    defaultKeywordsField: 'keywords',
+    relationshipField: 'doc',
+  },
+}
+
 afterAll(async () => {
   await payload.destroy()
 })
@@ -18,20 +26,20 @@ beforeAll(async () => {
   // so the BM25/Jaccard ranking has something to rank.
   const articles = [
     {
-      title: 'How Jaccard similarity works',
       summary: 'Understanding Jaccard coefficient for set comparison and keyword overlap.',
+      title: 'How Jaccard similarity works',
     },
     {
-      title: 'Introduction to BM25',
       summary: 'BM25 is a ranking function used by search engines to score documents.',
+      title: 'Introduction to BM25',
     },
     {
-      title: 'TF-IDF basics',
       summary: 'TF-IDF weights keywords by their rarity across a corpus.',
+      title: 'TF-IDF basics',
     },
     {
-      title: 'Baking sourdough at home',
       summary: 'Yeast, flour, patience, and a hot oven make the best loaves.',
+      title: 'Baking sourdough at home',
     },
   ]
   for (const article of articles) {
@@ -41,9 +49,9 @@ beforeAll(async () => {
   await payload.create({
     collection: 'posts',
     data: {
-      title: 'Why keyword overlap matters for related articles',
       body: 'Keywords, similarity, Jaccard, BM25 — the mechanics of related content widgets.',
       category: 'search',
+      title: 'Why keyword overlap matters for related articles',
     },
   })
 }, 60_000)
@@ -54,11 +62,11 @@ describe('payload-related-items', () => {
       collection: 'articles',
       limit: 1,
     })
-    const first = docs[0]!
+    const first = docs[0]
 
     const results = await getRelated({
-      collection: 'articles',
       id: first.id,
+      collection: 'articles',
       limit: 3,
       payload,
     })
@@ -73,7 +81,7 @@ describe('payload-related-items', () => {
     const withKeywords = searchRows.docs.filter(
       (d) =>
         Array.isArray((d as { keywords?: unknown }).keywords) &&
-        ((d as { keywords: unknown[] }).keywords.length > 0),
+        (d as { keywords: unknown[] }).keywords.length > 0,
     )
     expect(withKeywords.length).toBeGreaterThan(0)
 
@@ -82,20 +90,20 @@ describe('payload-related-items', () => {
       limit: 10,
       where: { title: { like: 'Jaccard' } },
     })
-    const source = docs[0]!
+    const source = docs[0]
     expect(source).toBeDefined()
 
     const results = await getRelated({
-      collection: 'articles',
       id: source.id,
+      collection: 'articles',
       limit: 5,
       payload,
       skipCache: true,
     })
 
     expect(results.length).toBeGreaterThan(0)
-    expect(results[0]!.score).toBeGreaterThan(0)
-    const top = results[0]!
+    expect(results[0].score).toBeGreaterThan(0)
+    const top = results[0]
     expect(top.source).toBeTruthy()
     expect(top.matchedKeywords.length).toBeGreaterThan(0)
     // Sourdough is off-topic — it should not outrank the keyword-themed articles.
@@ -107,10 +115,10 @@ describe('payload-related-items', () => {
       collection: 'articles',
       limit: 1,
     })
-    const source = docs[0]!
+    const source = docs[0]
     const results = await getRelated({
-      collection: 'articles',
       id: source.id,
+      collection: 'articles',
       payload,
       skipCache: true,
     })
@@ -118,9 +126,9 @@ describe('payload-related-items', () => {
   })
 
   test('throws for unconfigured collections', async () => {
-    await expect(
-      getRelated({ collection: 'media', id: 'x', payload }),
-    ).rejects.toThrow(/not configured/)
+    await expect(getRelated({ id: 'x', collection: 'media', payload })).rejects.toThrow(
+      /not configured/,
+    )
   })
 
   test('populates original docs when populate: true is passed', async () => {
@@ -129,12 +137,12 @@ describe('payload-related-items', () => {
       limit: 1,
       where: { title: { like: 'Jaccard' } },
     })
-    const source = docs[0]!
+    const source = docs[0]
     expect(source).toBeDefined()
 
     const results = await getRelated<Record<string, unknown>, { id: string; title?: string }>({
-      collection: 'articles',
       id: source.id,
+      collection: 'articles',
       limit: 3,
       payload,
       populate: true,
@@ -152,9 +160,7 @@ describe('payload-related-items', () => {
     const { docs } = await payload.find({ collection: 'articles', limit: 1 })
     expect(docs.length).toBeGreaterThan(0)
 
-    const endpoint = payload.config.endpoints?.find(
-      (e) => e.path === '/related/:collection/:id',
-    )
+    const endpoint = payload.config.endpoints?.find((e) => e.path === '/related/:collection/:id')
     expect(endpoint).toBeDefined()
   })
 
@@ -162,16 +168,8 @@ describe('payload-related-items', () => {
     const endpoint = payload.config.endpoints?.find((e) => e.path === '/related/word-cloud')
     expect(endpoint).toBeDefined()
 
-    // Pull the plugin's sanitized config out of the runtime via payload to feed
-    // aggregateWordCloud directly — mirrors what the endpoint does internally.
     const result = await aggregateWordCloud({
-      config: {
-        source: {
-          collection: 'search',
-          defaultKeywordsField: 'keywords',
-          relationshipField: 'doc',
-        },
-      } as never,
+      config: wordCloudAggregateConfig,
       limit: 50,
       minLength: 3,
       payload,
@@ -180,37 +178,25 @@ describe('payload-related-items', () => {
 
     expect(result.terms.length).toBeGreaterThan(0)
     expect(result.totalDocs).toBeGreaterThan(0)
-    const firstTerm = result.terms[0]!
+    const firstTerm = result.terms[0]
     expect(firstTerm.term.length).toBeGreaterThanOrEqual(3)
     expect(firstTerm.frequency).toBeGreaterThan(0)
     expect(firstTerm.df).toBeLessThanOrEqual(result.totalDocs)
     // Results are sorted by frequency descending.
     for (let i = 1; i < result.terms.length; i++) {
-      expect(result.terms[i - 1]!.frequency).toBeGreaterThanOrEqual(result.terms[i]!.frequency)
+      expect(result.terms[i - 1].frequency).toBeGreaterThanOrEqual(result.terms[i].frequency)
     }
   })
 
   test('word-cloud respects the originating-collection filter', async () => {
     const all = await aggregateWordCloud({
-      config: {
-        source: {
-          collection: 'search',
-          defaultKeywordsField: 'keywords',
-          relationshipField: 'doc',
-        },
-      } as never,
+      config: wordCloudAggregateConfig,
       payload,
       sampleSize: 500,
     })
 
     const articlesOnly = await aggregateWordCloud({
-      config: {
-        source: {
-          collection: 'search',
-          defaultKeywordsField: 'keywords',
-          relationshipField: 'doc',
-        },
-      } as never,
+      config: wordCloudAggregateConfig,
       filterCollection: 'articles',
       payload,
       sampleSize: 500,
