@@ -2,10 +2,8 @@ import type { Payload, PayloadRequest } from 'payload'
 
 import type { RelatedItem, SanitizedConfig, SourceRow } from '../types.js'
 
-import { computeRelated } from '../core/computeRelated.js'
-import { filterCandidates } from '../core/filters.js'
+import { resolveRelated } from '../core/resolveRelated.js'
 import { getRuntime } from '../runtime.js'
-import { findSourceRowForDoc } from '../source/searchPluginSource.js'
 
 /**
  * Computes and writes top-K related items for a single source doc into the
@@ -27,20 +25,17 @@ export async function precomputeFor(args: {
   const collectionConfig = config.collections[collection]
   if (!collectionConfig) {return null}
 
-  const query = await findSourceRowForDoc({ id, collection, config, payload, req })
-  if (!query) {return null}
-
-  const rows =
-    args.rows ?? (await runtime.source({ filter: collectionConfig.filter, payload, req }))
-
-  const candidates = filterCandidates({ config: collectionConfig, query, rows })
-
-  const items = computeRelated({
-    candidates,
-    config: collectionConfig,
-    overrides: { limit: config.precompute.topK },
-    query,
+  const items = await resolveRelated({
+    id,
+    collection,
+    config,
+    limit: config.precompute.topK,
+    payload,
+    req,
+    rows: args.rows,
+    source: runtime.source,
   })
+  if (!items) {return null}
 
   await upsertSidecar({
     id: String(id),

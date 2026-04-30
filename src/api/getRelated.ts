@@ -1,12 +1,10 @@
-import type { Payload, PayloadRequest, Where } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 
 import type { GetRelatedOptions, RelatedItem } from '../types.js'
 
-import { computeRelated } from '../core/computeRelated.js'
-import { filterCandidates } from '../core/filters.js'
+import { resolveRelated } from '../core/resolveRelated.js'
 import { buildCacheKey, getRuntime } from '../runtime.js'
 import { readPrecomputed } from '../sidecar/readPrecomputed.js'
-import { findSourceRowForDoc } from '../source/searchPluginSource.js'
 
 /**
  * Returns a ranked list of related items for a given document.
@@ -65,15 +63,23 @@ export async function getRelated<
     }
   }
 
-  const query = await findSourceRowForDoc({
+  const results = await resolveRelated({
     id: options.id,
     collection: options.collection,
     config,
+    crossCollection: options.crossCollection,
+    excludeCollections: options.excludeCollections,
+    excludeIds: options.excludeIds,
+    filter: options.filter,
+    limit: options.limit,
+    minScore: options.minScore,
     payload: options.payload,
     req: options.req,
+    scorer: options.scorer,
+    source: runtime.source,
   })
 
-  if (!query) {
+  if (!results) {
     options.payload.logger.warn?.(
       `[payload-related-items] No source row found for ${options.collection}/${options.id}. ` +
         `Save the document once to trigger search-plugin sync.`,
@@ -81,43 +87,11 @@ export async function getRelated<
     return []
   }
 
-  const rows = await runtime.source({
-    filter: mergeFilter(collectionConfig.filter, options.filter),
-    payload: options.payload,
-    req: options.req,
-  })
-
-  const candidates = filterCandidates({
-    config: collectionConfig,
-    crossCollectionOverride: options.crossCollection,
-    excludeCollections: options.excludeCollections,
-    excludeIds: options.excludeIds,
-    query,
-    rows,
-  })
-
-  const results = computeRelated({
-    candidates,
-    config: collectionConfig,
-    overrides: {
-      limit: options.limit,
-      minScore: options.minScore,
-      scorer: options.scorer,
-    },
-    query,
-  })
-
   if (!options.skipCache && runtime.cache) {runtime.cache.set(cacheKey, results)}
   const finalResults = populateOpt
     ? await populateDocs(results, populateOpt, options.payload, options.req)
     : results
   return finalResults as RelatedItem<TSource, TDoc>[]
-}
-
-function mergeFilter(a: undefined | Where, b: undefined | Where): undefined | Where {
-  if (!a) {return b}
-  if (!b) {return a}
-  return { and: [a, b] }
 }
 
 function normalizePopulate(
