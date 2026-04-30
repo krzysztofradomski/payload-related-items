@@ -22,6 +22,7 @@ export interface ResolveRelatedArgs {
   limit?: number
   minScore?: number
   payload: Payload
+  query?: SourceRow
   req?: PayloadRequest
   rows?: ReadonlyArray<SourceRow>
   scorer?: ScorerName
@@ -36,12 +37,14 @@ export async function resolveRelated(args: ResolveRelatedArgs): Promise<null | R
   const collectionConfig = args.config.collections[args.collection]
   if (!collectionConfig) {return null}
 
-  const query = await args.source.findOne({
-    id: args.id,
-    collection: args.collection,
-    payload: args.payload,
-    req: args.req,
-  })
+  const query =
+    args.query ??
+    (await args.source.findOne({
+      id: args.id,
+      collection: args.collection,
+      payload: args.payload,
+      req: args.req,
+    }))
 
   if (!query) {return null}
 

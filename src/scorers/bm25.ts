@@ -2,6 +2,9 @@ import type { ScorerFn } from '../types.js'
 
 import { BM25_B, BM25_K1 } from '../defaults.js'
 
+const tokenCountCache = new WeakMap<ReadonlyArray<string>, Map<string, number>>()
+const uniqueTokenCache = new WeakMap<ReadonlyArray<string>, Set<string>>()
+
 /**
  * BM25 similarity over keyword sets.
  *
@@ -17,9 +20,9 @@ import { BM25_B, BM25_K1 } from '../defaults.js'
  *   - k1 controls term-frequency saturation (default 1.2)
  *   - b controls length normalization (default 0.75)
  *
- * The raw sum is then squashed into [0, 1] with a smooth exponential mapping
- * so it combines cleanly with other scorers when multiple fields are blended.
- * Ranking within a single scorer is unaffected by the squash.
+ * The raw sum is normalized against the query's self-score so exact keyword
+ * matches land at 1 while partial matches stay below 1. This keeps BM25 useful
+ * in UI contexts where saturated scores like 1.000 would hide ranking quality.
  *
  * Quality notes:
  *   - BM25 dramatically outperforms Jaccard on real corpora because it
@@ -30,18 +33,29 @@ import { BM25_B, BM25_K1 } from '../defaults.js'
 export const bm25: ScorerFn = (query, candidate, ctx) => {
   if (query.length === 0 || candidate.length === 0) {return 0}
 
+  const rawScore = rawBm25(query, candidate, ctx)
+  if (rawScore <= 0) {return 0}
+
+  const selfScore = rawBm25(query, query, ctx)
+  if (selfScore <= 0) {return 0}
+
+  return Math.min(1, rawScore / selfScore)
+}
+
+function rawBm25(
+  query: ReadonlyArray<string>,
+  candidate: ReadonlyArray<string>,
+  ctx: Parameters<ScorerFn>[2],
+): number {
   const { avgDocLength, documentFrequency, totalDocs } = ctx
   const k1 = ctx.k1 ?? BM25_K1
   const b = ctx.b ?? BM25_B
 
-  const candidateCounts = new Map<string, number>()
-  for (const token of candidate) {
-    candidateCounts.set(token, (candidateCounts.get(token) ?? 0) + 1)
-  }
+  const candidateCounts = getTokenCounts(candidate)
   const candidateLength = candidate.length
 
   // Deduplicate query terms — classical BM25 uses unique query terms.
-  const queryTokens = new Set(query)
+  const queryTokens = getUniqueTokens(query)
 
   let rawScore = 0
   for (const term of queryTokens) {
@@ -59,7 +73,26 @@ export const bm25: ScorerFn = (query, candidate, ctx) => {
     rawScore += termScore
   }
 
-  // Squash the unbounded BM25 sum into [0, 1] via a smooth saturating function.
-  // Monotonic in rawScore so ranking is preserved.
-  return rawScore <= 0 ? 0 : 1 - Math.exp(-rawScore / 4)
+  return rawScore
+}
+
+function getTokenCounts(tokens: ReadonlyArray<string>): Map<string, number> {
+  const cached = tokenCountCache.get(tokens)
+  if (cached) {return cached}
+
+  const counts = new Map<string, number>()
+  for (const token of tokens) {
+    counts.set(token, (counts.get(token) ?? 0) + 1)
+  }
+  tokenCountCache.set(tokens, counts)
+  return counts
+}
+
+function getUniqueTokens(tokens: ReadonlyArray<string>): Set<string> {
+  const cached = uniqueTokenCache.get(tokens)
+  if (cached) {return cached}
+
+  const unique = new Set(tokens)
+  uniqueTokenCache.set(tokens, unique)
+  return unique
 }

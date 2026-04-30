@@ -1,4 +1,4 @@
-import type { Payload, PayloadRequest } from 'payload'
+import type { Payload, PayloadRequest, Where } from 'payload'
 
 import type { SanitizedConfig, SourceAdapterObject, SourceRow } from '../types.js'
 
@@ -9,6 +9,8 @@ interface SearchRow {
   [key: string]: unknown
   id: number | string
 }
+
+const DEFAULT_DISPLAY_FIELDS = ['title', 'name', 'slug', 'description'] as const
 
 export interface SearchPluginSourceOptions {
   config: SanitizedConfig
@@ -42,28 +44,42 @@ export function createSearchPluginSource(options: SearchPluginSourceOptions): So
     for (const f of col.fields) {fieldNames.add(f.name)}
     if (col.recency?.field) {fieldNames.add(col.recency.field)}
   }
-  for (const displayField of options.displayFields ?? []) {
+  for (const displayField of [
+    ...DEFAULT_DISPLAY_FIELDS,
+    ...(options.displayFields ?? []),
+  ]) {
     fieldNames.add(displayField)
   }
+  const selectFields = Object.fromEntries(
+    Array.from(fieldNames, (field) => [field, true]),
+  ) as Record<string, true>
 
   const configuredCollections = new Set(Object.keys(config.collections))
 
   return {
     findOne: (args) => findSourceRowForDoc({ ...args, config }),
-    list: async ({ filter, payload, req }) => {
+    list: async ({ collection, filter, limit, payload, req }) => {
       const entries: SourceRow[] = []
       let page = 1
       let hasMore = true
+      const where = mergeWhere(
+        collection
+          ? { [`${config.source.relationshipField}.relationTo`]: { equals: collection } }
+          : undefined,
+        filter,
+      )
 
-      while (hasMore) {
+      while (hasMore && (limit == null || entries.length < limit)) {
+        const remaining = limit == null ? pageSize : limit - entries.length
         const result = await payload.find({
           collection: config.source.collection,
           depth: 0,
-          limit: pageSize,
+          limit: Math.min(pageSize, remaining),
           overrideAccess: req == null,
           page,
           req,
-          where: filter,
+          select: selectFields,
+          where,
         })
 
         for (const doc of result.docs as SearchRow[]) {
@@ -73,6 +89,7 @@ export function createSearchPluginSource(options: SearchPluginSourceOptions): So
           // can't be candidates in any configured collection's query.
           if (!configuredCollections.has(row.collection)) {continue}
           entries.push(row)
+          if (limit != null && entries.length >= limit) {break}
         }
 
         hasMore = result.hasNextPage
@@ -82,6 +99,12 @@ export function createSearchPluginSource(options: SearchPluginSourceOptions): So
       return entries
     },
   }
+}
+
+function mergeWhere(a: undefined | Where, b: undefined | Where): undefined | Where {
+  if (!a) {return b}
+  if (!b) {return a}
+  return { and: [a, b] }
 }
 
 /**

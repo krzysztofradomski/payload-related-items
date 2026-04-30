@@ -51,9 +51,9 @@ export function buildWordCloudEndpoint(config: SanitizedConfig): Endpoint | null
     const url = new URL(req.url ?? 'http://localhost')
     const params = url.searchParams
 
-    const reqLimit = parseIntOr(params.get('limit')) ?? limit
+    const reqLimit = clamp(parseIntOr(params.get('limit')) ?? limit, 1, limit)
     const reqMinLength = parseIntOr(params.get('minLength')) ?? minLength
-    const reqSampleSize = parseIntOr(params.get('sampleSize')) ?? sampleSize
+    const reqSampleSize = clamp(parseIntOr(params.get('sampleSize')) ?? sampleSize, 1, sampleSize)
     const filterCollection = params.get('collection') || null
     const useStopWords = params.get('stopWords') === 'default'
     const skipCache = params.get('skipCache') === 'true'
@@ -82,6 +82,8 @@ export function buildWordCloudEndpoint(config: SanitizedConfig): Endpoint | null
             limit: reqLimit,
             minLength: reqMinLength,
             rows: await getRuntime(req.payload).source.list({
+              collection: filterCollection ?? undefined,
+              limit: reqSampleSize,
               payload: req.payload,
               req,
             }),
@@ -122,4 +124,8 @@ function parseIntOr(raw: null | string): number | undefined {
   if (!raw) {return undefined}
   const n = parseInt(raw, 10)
   return Number.isFinite(n) && n > 0 ? n : undefined
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max)
 }

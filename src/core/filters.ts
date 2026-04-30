@@ -24,9 +24,15 @@ export function filterCandidates(args: FilterCandidatesArgs): SourceRow[] {
   const primaryField = config.fields[0].name
   const excludedCollectionSet = new Set(excludeCollections ?? [])
   const excludedIdSet = new Set((excludeIds ?? []).map(String))
+  const queryDocId = String(query.docId)
+  const querySourceId = String(query.sourceId)
 
   return rows.filter((row) => {
-    if (config.excludeSelf && row.docId === query.docId && row.collection === query.collection) {
+    const sameOriginalDoc =
+      String(row.docId) === queryDocId && row.collection === query.collection
+    const sameSourceRow = String(row.sourceId) === querySourceId
+
+    if (config.excludeSelf && (sameOriginalDoc || sameSourceRow)) {
       return false
     }
     if (!crossCollection && row.collection !== query.collection) {return false}

@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'vitest'
 
+import { sanitizeConfig } from '../defaults.js'
 import { extractKeywords } from './keywords.js'
 import { parseKeywords } from './parseEmbedding.js'
 import { readSourceRelationship } from './relationship.js'
+import { createSearchPluginSource } from './searchPluginSource.js'
 
 describe('parseKeywords', () => {
   test('returns [] for null/undefined', () => {
@@ -94,5 +96,62 @@ describe('readSourceRelationship', () => {
   test('returns null for missing or unsupported relationship values', () => {
     expect(readSourceRelationship({}, 'doc')).toBeNull()
     expect(readSourceRelationship({ doc: { relationTo: 'posts', value: true } }, 'doc')).toBeNull()
+  })
+})
+
+describe('createSearchPluginSource', () => {
+  test('selects default display fields and exposes them on raw source rows', async () => {
+    const config = sanitizeConfig({
+      collections: {
+        articles: {
+          fields: [{ name: 'embedding' }],
+        },
+      },
+      source: {
+        collection: 'search-results',
+        defaultKeywordsField: 'embedding',
+        relationshipField: 'doc',
+      },
+    })
+    const findCalls: unknown[] = []
+    const payload = {
+      find: (args: unknown) => {
+        findCalls.push(args)
+        return Promise.resolve({
+          docs: [
+            {
+              id: 'search-1',
+              name: 'Article Name',
+              slug: 'article-slug',
+              description: 'Short summary',
+              doc: { relationTo: 'articles', value: 'article-1' },
+              embedding: ['teatr'],
+              title: 'Article Title',
+            },
+          ],
+          hasNextPage: false,
+        })
+      },
+    }
+
+    const source = createSearchPluginSource({ config })
+    const rows = await source.list({ payload: payload as never })
+
+    expect(findCalls[0]).toMatchObject({
+      select: {
+        name: true,
+        slug: true,
+        description: true,
+        doc: true,
+        embedding: true,
+        title: true,
+      },
+    })
+    expect(rows[0].raw).toMatchObject({
+      name: 'Article Name',
+      slug: 'article-slug',
+      description: 'Short summary',
+      title: 'Article Title',
+    })
   })
 })

@@ -16,16 +16,36 @@
   margin-bottom: calc(var(--base) * 0.25);
 }
 
-.scorerBadge {
-  font-weight: 500;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.scorerControl {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--base) * 0.15);
+  min-width: 9rem;
+}
+
+.scorerLabel {
   color: var(--theme-elevation-600);
-  background: var(--theme-elevation-100);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.scorerSelect {
+  width: 100%;
+  min-height: calc(var(--base) * 1.4);
+  color: var(--theme-text);
+  background: var(--theme-input-bg);
   border: 1px solid var(--theme-elevation-150);
-  padding: 1px 6px;
   border-radius: var(--style-radius-s);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0 calc(var(--base) * 0.35);
+}
+
+.scoreNote {
+  color: var(--theme-elevation-500);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  margin-top: calc(var(--base) * -0.2);
 }
 
 .empty {

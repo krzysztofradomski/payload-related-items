@@ -101,6 +101,39 @@ describe('filterCandidates', () => {
     expect(out.map((r) => r.docId)).toEqual(['2'])
   })
 
+  test('excludes self when ids are equivalent but not the same runtime type', () => {
+    const numericQuery: SourceRow = {
+      ...row('1', 'articles', ['a']),
+      docId: 1 as unknown as string,
+      sourceId: 101,
+    }
+    const rows: SourceRow[] = [
+      {
+        ...row('1', 'articles', ['a']),
+        sourceId: 'different-source-row',
+      },
+      row('2', 'articles', ['a']),
+    ]
+
+    const out = filterCandidates({ config: baseConfig, query: numericQuery, rows })
+
+    expect(out.map((r) => r.docId)).toEqual(['2'])
+  })
+
+  test('excludes self by source row id even when the relationship doc id differs', () => {
+    const rows: SourceRow[] = [
+      {
+        ...row('legacy-doc-id', 'articles', ['a']),
+        sourceId: query.sourceId,
+      },
+      row('2', 'articles', ['a']),
+    ]
+
+    const out = filterCandidates({ config: baseConfig, query, rows })
+
+    expect(out.map((r) => r.docId)).toEqual(['2'])
+  })
+
   test('honors crossCollection = false', () => {
     const rows = [row('2', 'articles', ['a']), row('3', 'posts', ['a'])]
     const out = filterCandidates({

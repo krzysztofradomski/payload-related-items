@@ -42,6 +42,7 @@ export function computeRelated(args: ComputeRelatedArgs): RelatedItem[] {
 
   const limit = overrides?.limit ?? config.topK
   const minScore = overrides?.minScore ?? config.minScore
+  if (limit <= 0) {return []}
 
   const effectiveFields: SanitizedFieldConfig[] = overrides?.scorer
     ? config.fields.map((f) => ({ ...f, scorer: overrides.scorer! }))
@@ -51,6 +52,11 @@ export function computeRelated(args: ComputeRelatedArgs): RelatedItem[] {
 
   // Precompute corpus stats only for fields whose scorer needs them (BM25).
   const statsByField = new Map<string, ReturnType<typeof buildCorpusStats>>()
+  const emptyScorerContext = {
+    avgDocLength: 0,
+    documentFrequency: new Map<string, number>(),
+    totalDocs: candidates.length,
+  }
   for (const field of effectiveFields) {
     if (field.scorer === 'bm25') {
       statsByField.set(field.name, buildCorpusStats(candidates, field.name))
@@ -70,11 +76,7 @@ export function computeRelated(args: ComputeRelatedArgs): RelatedItem[] {
       const scorer = getScorer(field.scorer)
       const queryTokens = query.keywordsByField[field.name] ?? []
       const candidateTokens = candidate.keywordsByField[field.name] ?? []
-      const ctx = statsByField.get(field.name) ?? {
-        avgDocLength: 0,
-        documentFrequency: new Map<string, number>(),
-        totalDocs: candidates.length,
-      }
+      const ctx = statsByField.get(field.name) ?? emptyScorerContext
       const raw = scorer(queryTokens, candidateTokens, ctx)
       fieldScores[field.name] = raw
       weightedSum += raw * field.weight
@@ -104,7 +106,7 @@ export function computeRelated(args: ComputeRelatedArgs): RelatedItem[] {
       }
     }
 
-    results.push({
+    pushTopResult(results, {
       id: candidate.docId,
       collection: candidate.collection,
       fieldScores,
@@ -112,11 +114,10 @@ export function computeRelated(args: ComputeRelatedArgs): RelatedItem[] {
       recencyMultiplier: multiplier,
       score: finalScore,
       source: candidate.raw,
-    })
+    }, limit)
   }
 
-  results.sort((a, b) => b.score - a.score)
-  return results.slice(0, limit)
+  return results
 }
 
 function toDate(value: Date | null | string | undefined): Date | null {
@@ -124,4 +125,24 @@ function toDate(value: Date | null | string | undefined): Date | null {
   if (value instanceof Date) {return isNaN(value.getTime()) ? null : value}
   const parsed = new Date(value)
   return isNaN(parsed.getTime()) ? null : parsed
+}
+
+function pushTopResult(results: RelatedItem[], item: RelatedItem, limit: number): void {
+  if (results.length === 0) {
+    results.push(item)
+    return
+  }
+
+  if (results.length >= limit && item.score <= results[results.length - 1].score) {
+    return
+  }
+
+  let index = results.length
+  while (index > 0 && item.score > results[index - 1].score) {
+    index--
+  }
+  results.splice(index, 0, item)
+  if (results.length > limit) {
+    results.pop()
+  }
 }

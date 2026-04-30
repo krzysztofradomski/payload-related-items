@@ -5,7 +5,16 @@ import { formatAdminURL } from 'payload/shared'
 import { useEffect, useMemo, useState } from 'react'
 
 import type { RelatedItem, ScorerName } from '../types.js'
+
 import styles from './RelatedItemsField.module.css'
+
+const SCORER_OPTIONS: Array<{ label: string; value: '' | ScorerName }> = [
+  { label: 'Collection default', value: '' },
+  { label: 'BM25', value: 'bm25' },
+  { label: 'Dice', value: 'dice' },
+  { label: 'Jaccard', value: 'jaccard' },
+  { label: 'Weighted Jaccard', value: 'weightedJaccard' },
+]
 
 interface RelatedItemsFieldProps {
   /** Override `crossCollection` for this widget. */
@@ -58,15 +67,19 @@ export const RelatedItemsField: React.FC<RelatedItemsFieldProps> = ({
 
   const [items, setItems] = useState<null | RelatedItem[]>(null)
   const [error, setError] = useState<null | string>(null)
+  const [selectedScorer, setSelectedScorer] = useState<'' | ScorerName>(scorer ?? '')
+  const effectiveScorer = selectedScorer || undefined
 
   const url = useMemo(() => {
-    if (!id || !collectionSlug || !apiRoute) return null
+    if (!id || !collectionSlug || !apiRoute) {return null}
     const base = endpointPath.startsWith('/') ? endpointPath.slice(1) : endpointPath
     const params = new URLSearchParams()
     params.set('limit', String(limit))
-    if (scorer) params.set('scorer', scorer)
-    if (minScore != null) params.set('minScore', String(minScore))
-    if (crossCollection != null) params.set('crossCollection', crossCollection ? 'true' : 'false')
+    if (effectiveScorer) {params.set('scorer', effectiveScorer)}
+    if (minScore != null) {params.set('minScore', String(minScore))}
+    if (crossCollection != null) {
+      params.set('crossCollection', crossCollection ? 'true' : 'false')
+    }
     if (excludeCollections && excludeCollections.length > 0) {
       params.set('excludeCollections', excludeCollections.join(','))
     }
@@ -79,29 +92,29 @@ export const RelatedItemsField: React.FC<RelatedItemsFieldProps> = ({
     apiRoute,
     endpointPath,
     limit,
-    scorer,
+    effectiveScorer,
     minScore,
     crossCollection,
     excludeCollections,
   ])
 
   useEffect(() => {
-    if (!url) return
+    if (!url) {return}
     let cancelled = false
     setError(null)
     setItems(null)
 
     void fetch(url, { credentials: 'include' })
       .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        if (!res.ok) {throw new Error(`HTTP ${res.status}`)}
         return res.json() as Promise<{ results: RelatedItem[] }>
       })
       .then((data) => {
-        if (cancelled) return
+        if (cancelled) {return}
         setItems(data.results ?? [])
       })
       .catch((err: Error) => {
-        if (cancelled) return
+        if (cancelled) {return}
         setError(err.message)
       })
 
@@ -110,15 +123,16 @@ export const RelatedItemsField: React.FC<RelatedItemsFieldProps> = ({
     }
   }, [url])
 
-  if (!cfgCtx || !docInfo) return null
+  if (!cfgCtx || !docInfo) {return null}
 
   if (!id) {
     return (
       <div className={styles.wrapper}>
         <div className={styles.label}>
           <span>{label}</span>
-          {scorer && <span className={styles.scorerBadge}>{scorer}</span>}
+          <ScorerSelector selectedScorer={selectedScorer} setSelectedScorer={setSelectedScorer} />
         </div>
+        <ScoreRangeNote />
         <div className={styles.empty}>Save the document to see related items.</div>
       </div>
     )
@@ -128,8 +142,9 @@ export const RelatedItemsField: React.FC<RelatedItemsFieldProps> = ({
     <div className={styles.wrapper}>
       <div className={styles.label}>
         <span>{label}</span>
-        {scorer && <span className={styles.scorerBadge}>{scorer}</span>}
+        <ScorerSelector selectedScorer={selectedScorer} setSelectedScorer={setSelectedScorer} />
       </div>
+      <ScoreRangeNote />
       {error && <div className={styles.error}>Error: {error}</div>}
       {!error && items === null && <div className={styles.loading}>Computing…</div>}
       {items !== null && items.length === 0 && (
@@ -146,11 +161,39 @@ export const RelatedItemsField: React.FC<RelatedItemsFieldProps> = ({
   )
 }
 
+const ScorerSelector: React.FC<{
+  selectedScorer: '' | ScorerName
+  setSelectedScorer: (scorer: '' | ScorerName) => void
+}> = ({ selectedScorer, setSelectedScorer }) => (
+  <label className={styles.scorerControl}>
+    <span className={styles.scorerLabel}>Scorer</span>
+    <select
+      className={styles.scorerSelect}
+      onChange={(event) => {
+        const value = event.currentTarget.value
+        setSelectedScorer(value === '' ? '' : (value as ScorerName))
+      }}
+      value={selectedScorer}
+    >
+      {SCORER_OPTIONS.map((option) => (
+        <option key={option.value || 'default'} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  </label>
+)
+
+const ScoreRangeNote: React.FC = () => (
+  <div className={styles.scoreNote}>Scores range from 0 to 1. Higher scores mean stronger matches.</div>
+)
+
 const RelatedItemRow: React.FC<{ item: RelatedItem }> = ({ item }) => {
-  const source = (item.source ?? {}) as Record<string, unknown>
+  const source = item.source ?? {}
   const title =
     (typeof source.title === 'string' && source.title) ||
     (typeof source.name === 'string' && source.name) ||
+    (typeof source.slug === 'string' && source.slug) ||
     String(item.id)
 
   const href = `/admin/collections/${item.collection}/${item.id}`

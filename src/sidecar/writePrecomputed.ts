@@ -17,6 +17,7 @@ export async function precomputeFor(args: {
   config: SanitizedConfig
   id: number | string
   payload: Payload
+  query?: SourceRow
   req?: PayloadRequest
   rows?: ReadonlyArray<SourceRow>
 }): Promise<null | RelatedItem[]> {
@@ -31,6 +32,7 @@ export async function precomputeFor(args: {
     config,
     limit: config.precompute.topK,
     payload,
+    query: args.query,
     req,
     rows: args.rows,
     source: runtime.source,
@@ -157,6 +159,7 @@ export async function rebuildRelatedIndex(args: {
         collection: row.collection,
         config,
         payload,
+        query: row,
         req,
         rows,
       })

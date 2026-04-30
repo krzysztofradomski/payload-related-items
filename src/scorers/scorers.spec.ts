@@ -100,4 +100,33 @@ describe('bm25', () => {
     expect(score).toBeGreaterThanOrEqual(0)
     expect(score).toBeLessThanOrEqual(1)
   })
+
+  test('returns 1 for an exact keyword match', () => {
+    const ctx: ScorerContext = {
+      avgDocLength: 3,
+      documentFrequency: new Map([
+        ['alpha', 1],
+        ['beta', 1],
+        ['gamma', 1],
+      ]),
+      totalDocs: 10,
+    }
+
+    expect(bm25(['alpha', 'beta', 'gamma'], ['alpha', 'beta', 'gamma'], ctx)).toBe(1)
+  })
+
+  test('keeps partial multi-token matches below 1', () => {
+    const query = Array.from({ length: 20 }, (_, i) => `term-${i}`)
+    const partialCandidate = query.slice(0, 10)
+    const ctx: ScorerContext = {
+      avgDocLength: 10,
+      documentFrequency: new Map(query.map((term) => [term, 1])),
+      totalDocs: 50,
+    }
+
+    const score = bm25(query, partialCandidate, ctx)
+
+    expect(score).toBeGreaterThan(0)
+    expect(score).toBeLessThan(0.8)
+  })
 })

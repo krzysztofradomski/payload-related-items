@@ -385,8 +385,12 @@ export interface SourceRow {
 }
 
 export interface FetchSourceArgs {
+  /** Originating collection to include. */
+  collection?: string
   /** Extra filter to AND into the query. */
   filter?: Where
+  /** Maximum number of rows to return. Adapters should stop as soon as this is reached. */
+  limit?: number
   payload: Payload
   req?: PayloadRequest
 }
