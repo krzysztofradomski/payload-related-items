@@ -29,11 +29,11 @@ providing a `SourceAdapter`:
 import type { SourceAdapter } from 'payload-related-items'
 
 const mySource: SourceAdapter = {
-  async list({ payload, req }) {
-    // return { rows: SourceRow[] }
-  },
   async findOne({ payload, collection, id, req }) {
     // return SourceRow | null
+  },
+  async list({ payload, req }) {
+    // return SourceRow[]
   },
 }
 

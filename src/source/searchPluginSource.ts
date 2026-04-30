@@ -48,36 +48,39 @@ export function createSearchPluginSource(options: SearchPluginSourceOptions): So
 
   const configuredCollections = new Set(Object.keys(config.collections))
 
-  return async ({ filter, payload, req }) => {
-    const entries: SourceRow[] = []
-    let page = 1
-    let hasMore = true
+  return {
+    findOne: (args) => findSourceRowForDoc({ ...args, config }),
+    list: async ({ filter, payload, req }) => {
+      const entries: SourceRow[] = []
+      let page = 1
+      let hasMore = true
 
-    while (hasMore) {
-      const result = await payload.find({
-        collection: config.source.collection,
-        depth: 0,
-        limit: pageSize,
-        overrideAccess: req == null,
-        page,
-        req,
-        where: filter,
-      })
+      while (hasMore) {
+        const result = await payload.find({
+          collection: config.source.collection,
+          depth: 0,
+          limit: pageSize,
+          overrideAccess: req == null,
+          page,
+          req,
+          where: filter,
+        })
 
-      for (const doc of result.docs as SearchRow[]) {
-        const row = toSourceRow(doc, config)
-        if (!row) {continue}
-        // Drop rows from collections we don't serve related-items for — they
-        // can't be candidates in any configured collection's query.
-        if (!configuredCollections.has(row.collection)) {continue}
-        entries.push(row)
+        for (const doc of result.docs as SearchRow[]) {
+          const row = toSourceRow(doc, config)
+          if (!row) {continue}
+          // Drop rows from collections we don't serve related-items for — they
+          // can't be candidates in any configured collection's query.
+          if (!configuredCollections.has(row.collection)) {continue}
+          entries.push(row)
+        }
+
+        hasMore = result.hasNextPage
+        page++
       }
 
-      hasMore = result.hasNextPage
-      page++
-    }
-
-    return entries
+      return entries
+    },
   }
 }
 

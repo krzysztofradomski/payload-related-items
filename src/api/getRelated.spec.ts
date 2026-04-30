@@ -9,6 +9,20 @@ import { registerRuntime } from '../runtime.js'
 import { getRelated } from './getRelated.js'
 
 describe('getRelated source adapter seam', () => {
+  test('carries a custom SourceAdapter through sanitized config', () => {
+    const fakeSource: SourceAdapter = {
+      findOne: vi.fn(() => Promise.resolve(null)),
+      list: vi.fn(() => Promise.resolve([])),
+    }
+
+    const config = sanitizeConfig({
+      collections: { articles: true },
+      source: { adapter: fakeSource },
+    })
+
+    expect(config.source.adapter).toBe(fakeSource)
+  })
+
   test('uses the registered SourceAdapter for live candidate rows', async () => {
     const config = sanitizeConfig({
       cache: false,
@@ -29,18 +43,12 @@ describe('getRelated source adapter seam', () => {
       raw: { id: 'search-candidate', title: 'Candidate from adapter' },
       sourceId: 'search-candidate',
     }
-    const fakeSource: SourceAdapter = vi.fn(() => Promise.resolve([queryRow, candidateRow]))
+    const fakeSource: SourceAdapter = {
+      findOne: vi.fn(() => Promise.resolve(queryRow)),
+      list: vi.fn(() => Promise.resolve([queryRow, candidateRow])),
+    }
 
     const payload = {
-      find: vi.fn(() => Promise.resolve({
-        docs: [
-          {
-            id: 'search-query',
-            doc: { relationTo: 'articles', value: 'source-1' },
-            keywords: ['payload', 'search'],
-          },
-        ],
-      })),
       logger: { warn: vi.fn() },
     } as unknown as Payload
 
@@ -54,7 +62,13 @@ describe('getRelated source adapter seam', () => {
       skipPrecomputed: true,
     })
 
-    expect(fakeSource).toHaveBeenCalledTimes(1)
+    expect(fakeSource.findOne).toHaveBeenCalledWith({
+      id: 'source-1',
+      collection: 'articles',
+      payload,
+      req: undefined,
+    })
+    expect(fakeSource.list).toHaveBeenCalledTimes(1)
     expect(results).toHaveLength(1)
     expect(results[0]).toMatchObject({
       id: 'candidate-1',

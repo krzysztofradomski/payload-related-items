@@ -31,6 +31,7 @@ export const BM25_B = 0.75
  */
 export function sanitizeConfig(raw: PayloadRelatedItemsConfig): SanitizedConfig {
   const source = {
+    adapter: raw.source?.adapter,
     collection: raw.source?.collection ?? DEFAULT_SOURCE_COLLECTION,
     defaultKeywordsField: raw.source?.defaultKeywordsField ?? DEFAULT_KEYWORDS_FIELD,
     relationshipField: raw.source?.relationshipField ?? DEFAULT_RELATIONSHIP_FIELD,

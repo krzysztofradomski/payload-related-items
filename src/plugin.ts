@@ -159,7 +159,7 @@ export const payloadRelatedItems =
       registerRuntime(payload, {
         cache,
         config: sanitized,
-        source: createSearchPluginSource({ config: sanitized }),
+        source: sanitized.source.adapter ?? createSearchPluginSource({ config: sanitized }),
       })
 
       payload.logger.info?.(

@@ -104,6 +104,11 @@ export interface RelatedItemsCollectionConfig {
 
 export interface RelatedItemsSourceConfig {
   /**
+   * Custom source adapter. When omitted, the plugin reads from the collection
+   * populated by `@payloadcms/plugin-search`.
+   */
+  adapter?: SourceAdapter
+  /**
    * Slug of the source collection supplying keyword data.
    * Default: `'search'` — the default slug produced by `@payloadcms/plugin-search`.
    */
@@ -283,19 +288,19 @@ export interface SanitizedCollectionConfig {
 export interface SanitizedConfig {
   adminField:
     | false
-    | (Required<
-        Pick<RelatedItemsAdminFieldConfig, 'enabled' | 'label' | 'limit' | 'name' | 'position'>
-      > &
-        Pick<
+    | (Pick<
           RelatedItemsAdminFieldConfig,
           'crossCollection' | 'excludeCollections' | 'minScore' | 'scorer'
+        > &
+        Required<
+          Pick<RelatedItemsAdminFieldConfig, 'enabled' | 'label' | 'limit' | 'name' | 'position'>
         >)
   cache: false | Required<RelatedItemsCacheConfig>
   collections: Record<string, SanitizedCollectionConfig>
   disabled: boolean
   endpoint: false | Required<RelatedItemsEndpointConfig>
   precompute: Required<RelatedItemsPrecomputeConfig>
-  source: Required<RelatedItemsSourceConfig>
+  source: Pick<RelatedItemsSourceConfig, 'adapter'> & Required<Omit<RelatedItemsSourceConfig, 'adapter'>>
   wordCloud: false | Required<RelatedItemsWordCloudConfig>
 }
 
@@ -386,4 +391,14 @@ export interface FetchSourceArgs {
   req?: PayloadRequest
 }
 
-export type SourceAdapter = (args: FetchSourceArgs) => Promise<SourceRow[]>
+export interface FindSourceArgs {
+  collection: string
+  id: number | string
+  payload: Payload
+  req?: PayloadRequest
+}
+
+export interface SourceAdapter {
+  findOne: (args: FindSourceArgs) => Promise<null | SourceRow>
+  list: (args: FetchSourceArgs) => Promise<SourceRow[]>
+}

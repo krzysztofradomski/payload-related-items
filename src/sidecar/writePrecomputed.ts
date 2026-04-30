@@ -144,7 +144,7 @@ export async function rebuildRelatedIndex(args: {
     )
   }
 
-  const rows = await runtime.source({ payload, req })
+  const rows = await runtime.source.list({ payload, req })
 
   // Group rows by original collection so we only rebuild docs whose collection is configured.
   const targets = rows.filter((row) => row.collection in config.collections)

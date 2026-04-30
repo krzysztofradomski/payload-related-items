@@ -8,7 +8,6 @@ import type {
   SourceRow,
 } from '../types.js'
 
-import { findSourceRowForDoc } from '../source/searchPluginSource.js'
 import { computeRelated } from './computeRelated.js'
 import { filterCandidates } from './filters.js'
 
@@ -37,10 +36,9 @@ export async function resolveRelated(args: ResolveRelatedArgs): Promise<null | R
   const collectionConfig = args.config.collections[args.collection]
   if (!collectionConfig) {return null}
 
-  const query = await findSourceRowForDoc({
+  const query = await args.source.findOne({
     id: args.id,
     collection: args.collection,
-    config: args.config,
     payload: args.payload,
     req: args.req,
   })
@@ -49,7 +47,7 @@ export async function resolveRelated(args: ResolveRelatedArgs): Promise<null | R
 
   const rows =
     args.rows ??
-    (await args.source({
+    (await args.source.list({
       filter: mergeFilter(collectionConfig.filter, args.filter),
       payload: args.payload,
       req: args.req,
