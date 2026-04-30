@@ -1,7 +1,7 @@
 {
   "name": "payload-related-items",
   "version": "1.0.0",
-  "description": "A blank template to get started with Payload 3.0",
+  "description": "Related items plugin for Payload CMS",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -87,9 +87,15 @@
     "react-dom": "^18 || ^19"
   },
   "peerDependenciesMeta": {
-    "@payloadcms/ui": { "optional": true },
-    "react": { "optional": true },
-    "react-dom": { "optional": true }
+    "@payloadcms/ui": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   },
   "engines": {
     "node": "^18.20.2 || >=20.9.0",

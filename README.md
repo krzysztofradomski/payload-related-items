@@ -40,8 +40,21 @@ pnpm add payload-related-items
 npm install payload-related-items
 ```
 
-Peer dependency: `payload` ≥ 3.x. `@payloadcms/ui`, `react`, `react-dom` are
-optional peer deps used only by the admin sidebar widget and the React hook.
+## Requirements
+
+- Node.js: `^18.20.2 || >=20.9.0`
+- Package manager: `pnpm ^9 || ^10` (repo uses `pnpm@10`)
+- Payload: `^3.0.0` (peer dependency)
+
+## Dependency model
+
+- **Required peer dependency**
+  - `payload` (`^3.0.0`)
+- **Optional peer dependencies** (needed only for UI integrations)
+  - `@payloadcms/ui` (`^3.0.0`) for admin sidebar integration
+  - `react` (`^18 || ^19`) and `react-dom` (`^18 || ^19`) for the client hook package (`payload-related-items/client`)
+
+If you only use the server API (`getRelated`) and REST endpoint, optional UI peers are not required.
 
 ## Quick start
 
@@ -108,6 +121,18 @@ That's it. Each configured collection now exposes:
 | [Word cloud](./docs/word-cloud.md)         | On-demand admin keyword cloud + REST endpoint.                          |
 | [Source adapter](./docs/source-adapter.md) | How keyword storage works + plugging in a non-search-plugin source.     |
 | [Development](./docs/development.md)       | Project layout, scripts, releasing, adding a scorer.                    |
+
+## Development scripts
+
+Common repo scripts from `package.json`:
+
+- `pnpm dev` - runs the local Next.js dev app under `dev/`
+- `pnpm dev:payload` - runs Payload CLI with `dev/payload.config.ts`
+- `pnpm dev:generate-types` - regenerates Payload types for the dev app
+- `pnpm dev:generate-importmap` - regenerates the Payload import map
+- `pnpm build` - copies assets and builds JS + declaration files to `dist/`
+- `pnpm lint` - runs ESLint
+- `pnpm test` - runs integration tests (`vitest`) and e2e tests (`playwright`)
 
 ## FAQ
 
