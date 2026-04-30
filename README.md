@@ -18,8 +18,8 @@ this"** sections backed by predictable math instead of a black box.
 - **Multi-field weighting**, **recency decay**, and **flexible exclusions**.
 - **In-memory LRU cache** (TTL-aware) and **optional precomputed sidecar
   collection** for large corpora.
-- **Admin sidebar widget** with a per-widget scorer override (compare
-  algorithms without touching collection config).
+- **Admin sidebar widget** with an editor-visible scorer dropdown plus optional
+  `adminField.scorer` default (compare algorithms without touching collection config).
 - **Keyword cloud** rendered on the source-collection list view, lazy-loaded
   and computed on demand.
 - **REST endpoint**, typed **`getRelated()`** server API, and a headless
@@ -136,11 +136,26 @@ documents. For very short keyword lists try `dice`; for sparse, tidy sets
 
 ### Can I use a different scorer for the admin widget vs. the public site?
 
-Yes — that's a first-class concern. Set `adminField.scorer` to control the
-widget independently from the collection-level default that
-`getRelated()` and the public REST endpoint use. The widget renders a small
-badge with the active scorer so editors can see what they're looking at.
+Yes — that's a first-class concern. Set `adminField.scorer` as the **initial**
+scorer for the widget (collection default vs BM25 vs Dice, …).
+Editors can change it per session via the scorer dropdown in the sidebar.
 See [Where to set the scorer](./docs/scorers.md#where-to-set-the-scorer).
+
+### What does the score number mean?
+
+All blended scores are in **`[0, 1]`** — higher means more related.
+Exact BM25 keyword overlap normalizes to **1** for that query; partial overlaps are below **1**.
+Recency decay (when configured) can multiply the blended score before filtering.
+
+See [Scorers](./docs/scorers.md#bm25-score-shape-and-display).
+
+### Why does my sidebar show title/name/slug from search rows?
+
+With the default search-plugin adapter, the plugin **`select`s common display fields**
+(`title`, `name`, `slug`, `description`) onto each source row so `RelatedItem.source`
+can render readable labels without calling `populate`. For populated originals use
+`getRelated({ populate: true })` or `?populate=true` as usual.
+See [API](./docs/api.md#populating-original-docs).
 
 ### Is the cache safe across multiple processes?
 

@@ -20,6 +20,14 @@ different fields on the same shared search index — e.g. articles against one
 `embedding` field, spectacles against `embedding` plus an `actorNames`
 sparse list.
 
+### Default search adapter & display fields
+
+The built-in adapter that reads `@payloadcms/plugin-search` rows automatically
+includes **`title`**, **`name`**, **`slug`**, and **`description`** in its Payload
+`select`, so those fields appear on `RelatedItem.source` for admin widgets and
+simple frontends. Override or extend via `createSearchPluginSource({ displayFields })`
+if your search rows use different field names.
+
 ## Custom source adapter
 
 If you don't use `@payloadcms/plugin-search`, you can plug in any source by
@@ -32,7 +40,7 @@ const mySource: SourceAdapter = {
   async findOne({ payload, collection, id, req }) {
     // return SourceRow | null
   },
-  async list({ filter, payload, req }) {
+  async list({ collection, filter, limit, payload, req }) {
     // return SourceRow[]
   },
 }
@@ -65,3 +73,7 @@ collection when using the default search-plugin adapter. It combines the
 configured `collections[slug].filter` with any per-call `getRelated({ filter })`
 override. Custom adapters should honor it when their backend can apply Payload
 `where` clauses; otherwise, document the unsupported filter behavior for callers.
+
+For aggregate surfaces such as the word cloud, `list` may also receive an
+originating `collection` and a `limit`. Adapters should push both down to their
+backend where possible so requests do not load the full corpus before sampling.

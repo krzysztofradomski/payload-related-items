@@ -2,8 +2,17 @@
 
 All built-in scorers operate on token sets extracted from the configured
 fields on the source row. They're pure functions of `(query, candidate, ctx)`
-returning a score in `[0, 1]` (BM25 is normalised to the same range for
-ordering purposes).
+returning a per-field score in **`[0, 1]`**. After blending fields (weighted average),
+recency decay multiplies that blended score in **`computeRelated`**.
+
+### BM25 score shape and display
+
+BM25 raw similarity is compared against the **query scoring itself as if it were
+the candidate** (`candidate === query`). That yields **`1`** for an exact keyword
+overlap match on that field and values **below `1`** for partial overlaps —
+better defaults than saturating unrelated BM25 sums to `~1` under arbitrary squash curves.
+
+Result **`RelatedItem.score`** is still clamped to **`[0, 1]`** after blending and recency.
 
 | Name              | Good for                                                    | Cost    |
 | ----------------- | ----------------------------------------------------------- | ------- |
@@ -13,7 +22,7 @@ ordering purposes).
 | `bm25` (default)  | Mixed-length docs, noisy keyword lists, larger corpora      | Medium  |
 
 BM25 builds per-field corpus statistics (IDF + average length) on demand from
-the candidate set. No extra index columns needed.
+the candidate set for each related-items query. No extra index columns needed.
 
 ## Where to set the scorer
 
@@ -43,19 +52,19 @@ applied by `getRelated()` and the public REST endpoint when no `scorer` is
 passed at call time. This is the data-layer default the rest of your app
 inherits.
 
-### 3. Per-widget — `adminField.scorer`
+### 3. Per-widget — `adminField.scorer` + editor dropdown
 
-Used by the editor-facing admin sidebar widget. **Independent** of the
-collection-level default so you can experiment with ranking strategy in the
-admin without changing the storage/data-layer defaults the rest of your app
-relies on. Same applies to:
+`adminField.scorer`, when set, seeds the **default selection** in the admin sidebar
+scorer dropdown. Editors can switch scorer live without touching collection config;
+their choice is sent as `?scorer=` on the related-items REST call used by the widget.
+
+This layer stays **independent** of the collection-level default used by `getRelated()`
+and the public REST endpoint when no `scorer` is passed — same idea applies to:
 
 - the headless `useRelatedItems` hook (`scorer: '...'` per call), and
 - direct REST calls (`?scorer=...`).
 
-The widget renders the active scorer as a small uppercase badge next to its
-label, so editors can tell at a glance which strategy produced the list
-they're looking at.
+A short note under the widget explains scores live in **`[0, 1]`** with higher = stronger match.
 
 ## Picking a scorer
 
