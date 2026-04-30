@@ -102,6 +102,23 @@ export default buildConfig({
 })
 ```
 
+### Plugin API compatibility
+
+This package is authored with Payload's `definePlugin` API (recommended for
+published plugins) and preserves the standard consumer usage:
+
+```ts
+plugins: [
+  payloadRelatedItems({
+    collections: { posts: true },
+  }),
+]
+```
+
+For type-aware plugin registration, the package also augments
+`payload`'s `RegisteredPlugins` map for `'payload-related-items'`, so users get
+typed plugin options when importing the package in TypeScript projects.
+
 That's it. Each configured collection now exposes:
 
 - A sidebar **Related Items** panel in the admin.

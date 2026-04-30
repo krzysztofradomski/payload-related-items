@@ -1,4 +1,4 @@
-import type { CollectionConfig, Config } from 'payload'
+import { type CollectionConfig, type Config } from 'payload'
 
 import type { PayloadRelatedItemsConfig, RelatedItem } from './types.js'
 

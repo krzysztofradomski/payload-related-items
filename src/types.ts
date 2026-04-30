@@ -233,7 +233,7 @@ export interface RelatedItemsWordCloudConfig {
 /**
  * Public plugin configuration.
  */
-export interface PayloadRelatedItemsConfig {
+export interface PayloadRelatedItemsConfig extends Record<string, unknown> {
   /** Admin UI field shown on every enabled collection. Set to `false` to disable. */
   adminField?: false | RelatedItemsAdminFieldConfig
   /** In-memory cache of query results. Set to `false` to disable. */

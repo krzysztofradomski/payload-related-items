@@ -1,3 +1,5 @@
+import type { PayloadRelatedItemsConfig } from './types.js'
+
 export { getRelated } from './api/getRelated.js'
 export { clearWordCloudCache } from './endpoints/wordCloudEndpoint.js'
 export { payloadRelatedItems } from './plugin.js'
@@ -39,3 +41,9 @@ export type {
   WordCloudResult,
   WordCloudTerm,
 } from './wordCloud/aggregate.js'
+
+declare module 'payload' {
+  interface RegisteredPlugins {
+    'payload-related-items': PayloadRelatedItemsConfig
+  }
+}

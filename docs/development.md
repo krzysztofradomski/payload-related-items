@@ -48,3 +48,22 @@ docs/              extended documentation (this folder)
 
 The package publishes only the `dist/` folder (per `package.json` `files`).
 Make sure `pnpm build` succeeds and tests are green before tagging a release.
+
+## Plugin API surface
+
+The public entrypoint (`src/plugin.ts`) uses Payload's `definePlugin` helper
+with explicit `slug` (`payload-related-items`) and `order` metadata.
+This keeps the consumer API unchanged (`payloadRelatedItems({ ... })`) while
+aligning with the recommended API shape for published Payload plugins.
+
+The package also declares:
+
+```ts
+declare module 'payload' {
+  interface RegisteredPlugins {
+    'payload-related-items': PayloadRelatedItemsConfig
+  }
+}
+```
+
+so downstream projects get typed plugin registration automatically on import.
