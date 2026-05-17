@@ -32,10 +32,10 @@ this"** sections backed by predictable math instead of a black box.
 > semantic embeddings, A/B testing, external vector providers, and an
 > analytics dashboard is planned separately. -->
 
-## Install
+## Install - not published yet!
 
 ```bash
-pnpm add payload-related-items
+pnpm add @krzysztofradomski/payload-related-items
 # or
 npm install payload-related-items
 ```
