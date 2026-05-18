@@ -1,8 +1,22 @@
 {
   "name": "@krzysztofradomski/payload-related-items",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Related items plugin for Payload CMS",
   "license": "MIT",
+  "keywords": [
+    "payload",
+    "payloadcms",
+    "payload-plugin",
+    "cms",
+    "headless-cms",
+    "related-posts",
+    "related-content",
+    "recommendations",
+    "content-similarity",
+    "bm25",
+    "search",
+    "plugin-search"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/krzysztofradomski/payload-related-items.git"

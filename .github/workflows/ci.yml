@@ -81,7 +81,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Test
-        run: pnpm test:vitest -- --reporter=verbose
+        run: pnpm test:int -- --reporter=verbose
 
   build:
     name: Build

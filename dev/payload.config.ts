@@ -75,15 +75,6 @@ const buildConfigWithMemoryDB = async () => {
     },
     plugins: [
       searchPlugin({
-        collections: ['posts', 'articles'],
-        searchOverrides: {
-          fields: ({ defaultFields }) => [
-            ...defaultFields,
-            { name: 'keywords', type: 'json', admin: { readOnly: true } },
-            { name: 'body', type: 'textarea' },
-            { name: 'category', type: 'text' },
-          ],
-        },
         beforeSync: ({ originalDoc, searchDoc }) => {
           const text = [
             searchDoc.title,
@@ -101,11 +92,20 @@ const buildConfigWithMemoryDB = async () => {
             keywords: extractKeywords(text),
           }
         },
+        collections: ['posts', 'articles'],
+        searchOverrides: {
+          fields: ({ defaultFields }) => [
+            ...defaultFields,
+            { name: 'keywords', type: 'json', admin: { readOnly: true } },
+            { name: 'body', type: 'textarea' },
+            { name: 'category', type: 'text' },
+          ],
+        },
       }),
       payloadRelatedItems({
         collections: {
-          posts: true,
           articles: true,
+          posts: true,
         },
       }),
     ],
