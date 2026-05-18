@@ -58,7 +58,21 @@ The package publishes only the `dist/` folder (per `package.json` `files`).
 
 ### Automated releases (recommended)
 
-No `NPM_TOKEN` GitHub secret is required when [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) is configured (OIDC from GitHub Actions).
+### npm authentication (required)
+
+CI publish failed with `npm error 404` / “you do not have permission” almost always means **no valid npm credentials** in the workflow.
+
+**Option A — Trusted publishing (recommended, no GitHub secret)**
+
+1. On [npmjs.com](https://www.npmjs.com/) → `@krzysztofradomski/payload-related-items` → **Settings** → **Trusted publishing**
+2. Add **GitHub Actions**: repo `krzysztofradomski/payload-related-items`, workflow filename **`publish.yml`**
+3. Re-run the failed workflow or publish a new release
+
+**Important:** If you use trusted publishing, **delete** the repo secret `NPM_TOKEN` if it exists. A stale or read-only `NPM_TOKEN` is passed as `NODE_AUTH_TOKEN` and **overrides OIDC**, which produces the same `npm error 404` even when trusted publishing is configured correctly.
+
+**Option B — Automation token (fallback only)**
+
+Use this instead of trusted publishing (not both): add a valid publish token as `NPM_TOKEN` and use a workflow that sets `NODE_AUTH_TOKEN` — not the default `publish.yml` in this repo.
 
 1. Bump `version` in `package.json` on `main` and merge.
 2. On GitHub: **Releases → Create a new release** → tag `v1.0.1` (must match `package.json`, e.g. `1.0.1`) → **Publish release**.
