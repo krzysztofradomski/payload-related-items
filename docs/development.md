@@ -48,13 +48,20 @@ docs/              extended documentation (this folder)
 
 The package publishes only the `dist/` folder (per `package.json` `files`).
 
-### First publish (one-time)
+### First publish (one-time, new package name)
 
-1. Create the package on [npmjs.com](https://www.npmjs.com/) (or let the first publish create it if your account allows).
-2. Under **Settings → Trusted publishing**, add **GitHub Actions** with:
+Trusted publishing is configured **per package** on npm. After renaming, set it up on `payload-plugin-related-items` (not the old scoped name).
+
+1. From your machine (creates the package on npm):
+   ```bash
+   pnpm build
+   npm publish
+   ```
+2. On [npmjs.com](https://www.npmjs.com/package/payload-plugin-related-items) → **Settings** → **Trusted publishing** → **GitHub Actions**:
    - Repository: `krzysztofradomski/payload-related-items`
    - Workflow filename: `publish.yml`
-3. Optionally set **Publishing access** to disallow long-lived tokens after trusted publishing works.
+3. Delete the GitHub repo secret **`NPM_TOKEN`** if present (it overrides OIDC).
+4. Further versions: use **Releases** in GitHub (see below).
 
 ### Automated releases (recommended)
 
@@ -64,7 +71,7 @@ CI publish failed with `npm error 404` / “you do not have permission” almost
 
 **Option A — Trusted publishing (recommended, no GitHub secret)**
 
-1. On [npmjs.com](https://www.npmjs.com/) → `@krzysztofradomski/payload-related-items` → **Settings** → **Trusted publishing**
+1. On [npmjs.com](https://www.npmjs.com/) → `payload-plugin-related-items` → **Settings** → **Trusted publishing**
 2. Add **GitHub Actions**: repo `krzysztofradomski/payload-related-items`, workflow filename **`publish.yml`**
 3. Re-run the failed workflow or publish a new release
 
@@ -75,7 +82,7 @@ CI publish failed with `npm error 404` / “you do not have permission” almost
 Use this instead of trusted publishing (not both): add a valid publish token as `NPM_TOKEN` and use a workflow that sets `NODE_AUTH_TOKEN` — not the default `publish.yml` in this repo.
 
 1. Bump `version` in `package.json` on `main` and merge.
-2. On GitHub: **Releases → Create a new release** → tag `v1.0.1` (must match `package.json`, e.g. `1.0.1`) → **Publish release**.
+2. On GitHub: **Releases → Create a new release** → tag `v1.0.2` (must match `package.json`, e.g. `1.0.2`) → **Publish release**.
 3. The [publish workflow](../.github/workflows/publish.yml) runs on `release: published`, then typecheck, lint, tests, build, and publish to npm.
 
 The release tag (without the `v` prefix) must match `package.json` `version`.

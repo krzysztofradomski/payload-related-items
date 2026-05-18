@@ -35,9 +35,9 @@ this"** sections backed by predictable math instead of a black box.
 ## Install
 
 ```bash
-pnpm add @krzysztofradomski/payload-related-items
+pnpm add payload-plugin-related-items
 # or
-npm install @krzysztofradomski/payload-related-items
+npm install payload-plugin-related-items
 ```
 
 ## Requirements
