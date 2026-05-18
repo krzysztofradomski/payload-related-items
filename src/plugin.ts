@@ -125,7 +125,7 @@ export const payloadRelatedItems =
                   sampleSize: sanitized.wordCloud !== false ? sanitized.wordCloud.sampleSize : 2000,
                   sourceCollection: sanitized.source.collection,
                 },
-                path: 'payload-related-items/client#WordCloud',
+                path: 'payload-plugin-related-items#WordCloud',
               },
             ],
           },

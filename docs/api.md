@@ -13,7 +13,7 @@ const results = await getRelated({
   collection: 'posts',
   id: postId,
   limit: 5,
-  populate: true,                // or { depth: 1 } — batch-load originating docs as `doc`
+  populate: true, // or { depth: 1 } — batch-load originating docs as `doc`
   // scorer: 'dice',
   // crossCollection: true,
   // excludeCollections: ['drafts'],
@@ -60,14 +60,14 @@ from the `/client` subpath:
 
 ```tsx
 'use client'
-import { useRelatedItems } from 'payload-related-items/client'
+import { useRelatedItems } from 'payload-plugin-related-items'
 
 function RelatedSection({ articleId }: { articleId: string }) {
   const { items, loading, error, refetch } = useRelatedItems({
     collection: 'articles',
     id: articleId,
     limit: 4,
-    populate: 1,                  // `true` or a Payload `depth`
+    populate: 1, // `true` or a Payload `depth`
     // scorer: 'dice',
     // crossCollection: true,
     // excludeCollections: ['drafts'],
@@ -104,11 +104,11 @@ The hook:
 interface RelatedItem<TSource, TDoc> {
   id: number | string
   collection: string
-  score: number                              // blended score
-  fieldScores: Record<string, number>        // raw per-field scores, before weighting/recency
-  matchedKeywords: string[]                  // overlap on the first configured field
-  recencyMultiplier: number                  // 1 if recency not configured
-  source: TSource                            // raw source-collection row (for title/slug/etc.)
-  doc?: TDoc                                 // populated when `populate` is set
+  score: number // blended score
+  fieldScores: Record<string, number> // raw per-field scores, before weighting/recency
+  matchedKeywords: string[] // overlap on the first configured field
+  recencyMultiplier: number // 1 if recency not configured
+  source: TSource // raw source-collection row (for title/slug/etc.)
+  doc?: TDoc // populated when `populate` is set
 }
 ```

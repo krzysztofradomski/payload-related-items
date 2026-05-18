@@ -52,7 +52,7 @@ npm install @krzysztofradomski/payload-related-items
   - `payload` (`^3.0.0`)
 - **Optional peer dependencies** (needed only for UI integrations)
   - `@payloadcms/ui` (`^3.0.0`) for admin sidebar integration
-  - `react` (`^18 || ^19`) and `react-dom` (`^18 || ^19`) for the client hook package (`payload-related-items/client`)
+  - `react` (`^18 || ^19`) and `react-dom` (`^18 || ^19`) for the client hook package (`payload-plugin-related-items`)
 
 If you only use the server API (`getRelated`) and REST endpoint, optional UI peers are not required.
 
@@ -125,7 +125,7 @@ That's it. Each configured collection now exposes:
 - `GET /api/related/:collection/:id?limit=5` — JSON response.
 - `getRelated({ payload, collection, id })` in server code.
 - `useRelatedItems({ collection, id })` in client components (from
-  `payload-related-items/client`).
+  `payload-plugin-related-items`).
 
 ## Documentation
 
@@ -257,7 +257,7 @@ job, `onInit`, etc.). No new runtime to operate.
 
 ## License
 
-MIT. Copyright © Krzysztof Radomski
+MIT.
 
 ## Media
 

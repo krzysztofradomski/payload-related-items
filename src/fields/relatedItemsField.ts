@@ -19,16 +19,8 @@ export function buildAdminField(config: SanitizedConfig): Field | null {
     return null
   }
 
-  const {
-    name,
-    crossCollection,
-    excludeCollections,
-    label,
-    limit,
-    minScore,
-    position,
-    scorer,
-  } = config.adminField
+  const { name, crossCollection, excludeCollections, label, limit, minScore, position, scorer } =
+    config.adminField
   const endpointPath = config.endpoint === false ? '/related' : config.endpoint.path
 
   const clientProps: Record<string, unknown> = {
@@ -50,7 +42,7 @@ export function buildAdminField(config: SanitizedConfig): Field | null {
       components: {
         Field: {
           clientProps,
-          path: 'payload-related-items/client#RelatedItemsField',
+          path: 'payload-plugin-related-items#RelatedItemsField',
         },
       },
       position,

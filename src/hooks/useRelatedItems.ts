@@ -66,7 +66,7 @@ export interface UseRelatedItemsResult<
  * @example
  * ```tsx
  * 'use client'
- * import { useRelatedItems } from 'payload-related-items/client'
+ * import { useRelatedItems } from 'payload-plugin-related-items'
  *
  * function RelatedSection({ articleId }: { articleId: string }) {
  *   const { items, loading, error } = useRelatedItems({
@@ -82,10 +82,9 @@ export interface UseRelatedItemsResult<
  * }
  * ```
  */
-export function useRelatedItems<
-  TSource = Record<string, unknown>,
-  TDoc = Record<string, unknown>,
->(options: UseRelatedItemsOptions): UseRelatedItemsResult<TSource, TDoc> {
+export function useRelatedItems<TSource = Record<string, unknown>, TDoc = Record<string, unknown>>(
+  options: UseRelatedItemsOptions,
+): UseRelatedItemsResult<TSource, TDoc> {
   const {
     id,
     collection,
@@ -103,17 +102,31 @@ export function useRelatedItems<
   } = options
 
   const url = useMemo(() => {
-    if (!collection || id == null || id === '') {return null}
+    if (!collection || id == null || id === '') {
+      return null
+    }
     const params = new URLSearchParams()
-    if (limit != null) {params.set('limit', String(limit))}
-    if (scorer) {params.set('scorer', scorer)}
-    if (crossCollection != null) {params.set('crossCollection', String(crossCollection))}
+    if (limit != null) {
+      params.set('limit', String(limit))
+    }
+    if (scorer) {
+      params.set('scorer', scorer)
+    }
+    if (crossCollection != null) {
+      params.set('crossCollection', String(crossCollection))
+    }
     if (excludeCollections?.length) {
       params.set('excludeCollections', excludeCollections.join(','))
     }
-    if (minScore != null) {params.set('minScore', String(minScore))}
-    if (skipCache) {params.set('skipCache', 'true')}
-    if (skipPrecomputed) {params.set('skipPrecomputed', 'true')}
+    if (minScore != null) {
+      params.set('minScore', String(minScore))
+    }
+    if (skipCache) {
+      params.set('skipCache', 'true')
+    }
+    if (skipPrecomputed) {
+      params.set('skipPrecomputed', 'true')
+    }
     if (populate != null) {
       params.set('populate', typeof populate === 'number' ? String(populate) : String(populate))
     }
@@ -169,7 +182,9 @@ export function useRelatedItems<
         setState({ error: null, items: payload.results ?? [], loading: false })
       }
     } catch (err) {
-      if ((err as { name?: string }).name === 'AbortError') {return}
+      if ((err as { name?: string }).name === 'AbortError') {
+        return
+      }
       setState({ error: err as Error, items: [], loading: false })
     }
   }, [fetcher, skip, url])

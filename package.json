@@ -1,5 +1,5 @@
 {
-  "name": "@krzysztofradomski/payload-related-items",
+  "name": "payload-plugin-related-items",
   "version": "1.0.1",
   "description": "Related items plugin for Payload CMS",
   "license": "MIT",
