@@ -17,9 +17,9 @@
     "baseUrl": "./",
     "paths": {
       "@payload-config": ["./payload.config.ts"],
-      "payload-related-items": ["../src/index.ts"],
-      "payload-plugin-related-items": ["../src/exports/client.ts"],
-      "payload-related-items/rsc": ["../src/exports/rsc.ts"]
+      "payload-plugin-related-items": ["../src/index.ts"],
+      "payload-plugin-related-items/client": ["../src/exports/client.ts"],
+      "payload-plugin-related-items/rsc": ["../src/exports/rsc.ts"]
     },
     "noEmit": true,
     "emitDeclarationOnly": false

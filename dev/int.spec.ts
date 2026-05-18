@@ -2,7 +2,7 @@ import type { Payload } from 'payload'
 
 import config from '@payload-config'
 import { getPayload } from 'payload'
-import { aggregateWordCloud, getRelated } from 'payload-related-items'
+import { aggregateWordCloud, getRelated } from 'payload-plugin-related-items'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 
 let payload: Payload

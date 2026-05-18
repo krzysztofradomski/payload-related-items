@@ -1,6 +1,6 @@
 {
   "name": "payload-plugin-related-items",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Related items plugin for Payload CMS",
   "license": "MIT",
   "keywords": [
@@ -95,6 +95,7 @@
     "next": "16.2.6",
     "open": "^10.1.0",
     "payload": "3.84.0",
+    "payload-plugin-related-items": "link:",
     "prettier": "^3.4.2",
     "qs-esm": "8.0.1",
     "react": "19.2.4",

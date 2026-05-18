@@ -42,7 +42,7 @@ export function buildAdminField(config: SanitizedConfig): Field | null {
       components: {
         Field: {
           clientProps,
-          path: 'payload-plugin-related-items#RelatedItemsField',
+          path: 'payload-plugin-related-items/client#RelatedItemsField',
         },
       },
       position,

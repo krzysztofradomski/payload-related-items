@@ -1,1 +1,1 @@
-MIT. Copyright © Krzysztof Radomski
+MIT.
