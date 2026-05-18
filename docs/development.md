@@ -47,7 +47,31 @@ docs/              extended documentation (this folder)
 ## Releasing
 
 The package publishes only the `dist/` folder (per `package.json` `files`).
-Make sure `pnpm build` succeeds and tests are green before tagging a release.
+
+### First publish (one-time)
+
+1. Create the package on [npmjs.com](https://www.npmjs.com/) (or let the first publish create it if your account allows).
+2. Under **Settings → Trusted publishing**, add **GitHub Actions** with:
+   - Repository: `krzysztofradomski/payload-related-items`
+   - Workflow filename: `publish.yml`
+3. Optionally set **Publishing access** to disallow long-lived tokens after trusted publishing works.
+
+### Automated releases (recommended)
+
+No `NPM_TOKEN` GitHub secret is required when [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) is configured (OIDC from GitHub Actions).
+
+1. Bump `version` in `package.json` on `main` and merge.
+2. On GitHub: **Releases → Create a new release** → tag `v1.0.1` (must match `package.json`, e.g. `1.0.1`) → **Publish release**.
+3. The [publish workflow](../.github/workflows/publish.yml) runs on `release: published`, then typecheck, lint, tests, build, and publish to npm.
+
+The release tag (without the `v` prefix) must match `package.json` `version`.
+
+### Manual publish (fallback)
+
+```bash
+pnpm build
+npm publish --access public
+```
 
 ## Plugin API surface
 

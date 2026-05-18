@@ -3,6 +3,14 @@
   "version": "1.0.0",
   "description": "Related items plugin for Payload CMS",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krzysztofradomski/payload-related-items.git"
+  },
+  "bugs": {
+    "url": "https://github.com/krzysztofradomski/payload-related-items/issues"
+  },
+  "homepage": "https://github.com/krzysztofradomski/payload-related-items#readme",
   "type": "module",
   "exports": {
     ".": {
@@ -45,7 +53,8 @@
     "test:int": "vitest",
     "typecheck": "tsc --noEmit",
     "update": "pnpm store prune && pnpm up --latest --interactive",
-    "check": "tsc --noEmit && eslint src && vitest run"
+    "check": "tsc --noEmit && eslint src && vitest run",
+    "prepublishOnly": "pnpm clean && pnpm build"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -105,6 +114,7 @@
     "pnpm": "^9 || ^10"
   },
   "publishConfig": {
+    "access": "public",
     "exports": {
       ".": {
         "import": "./dist/index.js",
