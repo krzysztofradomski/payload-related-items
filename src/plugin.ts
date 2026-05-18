@@ -1,17 +1,14 @@
 import { type CollectionConfig, type Config } from 'payload'
 
-import type { PayloadRelatedItemsConfig, RelatedItem } from './types.js'
+import type { PayloadRelatedItemsConfig } from './types.js'
 
-import { LruTtlCache } from './cache/index.js'
 import { sanitizeConfig } from './defaults.js'
 import { buildRelatedEndpoint } from './endpoints/relatedEndpoint.js'
 import { buildWordCloudEndpoint } from './endpoints/wordCloudEndpoint.js'
 import { buildAdminField } from './fields/relatedItemsField.js'
 import { attachSourceHooks } from './hooks/sourceHooks.js'
-import { registerRuntime } from './runtime.js'
+import { attachSanitizedConfig, createRuntime, registerRuntime } from './runtime.js'
 import { buildSidecarCollection } from './sidecar/collection.js'
-import { normalizeSourceAdapter } from './source/adapter.js'
-import { createSearchPluginSource } from './source/searchPluginSource.js'
 
 /**
  * The payload-related-items plugin.
@@ -61,7 +58,9 @@ export const payloadRelatedItems =
     const adminField = buildAdminField(sanitized)
     if (adminField) {
       config.collections = config.collections!.map((collection) => {
-        if (!(collection.slug in sanitized.collections)) {return collection}
+        if (!(collection.slug in sanitized.collections)) {
+          return collection
+        }
         // Avoid double-adding on HMR reloads.
         const fieldName = 'name' in adminField ? adminField.name : undefined
         if (
@@ -84,6 +83,8 @@ export const payloadRelatedItems =
     if (sanitized.disabled) {
       return config
     }
+
+    attachSanitizedConfig(config, sanitized)
 
     // Attach afterChange/afterDelete hooks to the source collection so cache
     // + sidecar stay in sync with search-plugin writes. Also inject the
@@ -120,10 +121,8 @@ export const payloadRelatedItems =
               {
                 clientProps: {
                   endpointPath: wordCloudPath,
-                  limit:
-                    sanitized.wordCloud !== false ? sanitized.wordCloud.limit : 100,
-                  sampleSize:
-                    sanitized.wordCloud !== false ? sanitized.wordCloud.sampleSize : 2000,
+                  limit: sanitized.wordCloud !== false ? sanitized.wordCloud.limit : 100,
+                  sampleSize: sanitized.wordCloud !== false ? sanitized.wordCloud.sampleSize : 2000,
                   sourceCollection: sanitized.source.collection,
                 },
                 path: 'payload-related-items/client#WordCloud',
@@ -147,24 +146,11 @@ export const payloadRelatedItems =
     // Initialize the per-Payload runtime on first boot.
     const incomingOnInit = config.onInit
     config.onInit = async (payload) => {
-      if (incomingOnInit) {await incomingOnInit(payload)}
+      if (incomingOnInit) {
+        await incomingOnInit(payload)
+      }
 
-      const cache =
-        sanitized.cache === false || !sanitized.cache.enabled
-          ? null
-          : new LruTtlCache<RelatedItem[]>({
-              maxEntries: sanitized.cache.maxEntries,
-              ttlSeconds: sanitized.cache.ttlSeconds,
-            })
-
-      registerRuntime(payload, {
-        cache,
-        config: sanitized,
-        source: normalizeSourceAdapter({
-          adapter: sanitized.source.adapter ?? createSearchPluginSource({ config: sanitized }),
-          config: sanitized,
-        }),
-      })
+      registerRuntime(payload, createRuntime(sanitized))
 
       payload.logger.info?.(
         `[payload-related-items] Initialized (collections: ${Object.keys(sanitized.collections).join(', ') || '<none>'}, ` +

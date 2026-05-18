@@ -258,3 +258,10 @@ job, `onInit`, etc.). No new runtime to operate.
 ## License
 
 MIT. Copyright © Krzysztof Radomski
+
+## Media
+
+This plugin was tested and developed in relation to my upcoming fairytale builder app.
+
+![Word Cloud per collection](media/word-cloud.png)
+![Item keywords](media/item-related-items.png)
